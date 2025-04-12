@@ -1,13 +1,13 @@
-package com.example.voidtune;
+package com.example.voidtune.Activities;
 
 import android.os.Bundle;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.voidtune.R;
 import com.example.voidtune.adapter.CategoryAdapter;
 import com.example.voidtune.adapter.HomeListAdapter;
 import com.example.voidtune.adapter.LibraryListAdapter;
