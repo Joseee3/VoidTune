@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground">
+
+    <!-- Contenedor de texto -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Nombre de la canción -->
+        <TextView
+            android:id="@+id/songTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Nombre de la canción"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:ellipsize="end"
+            android:maxLines="1" />
+
+        <!-- Artista o artistas -->
+        <TextView
+            android:id="@+id/songArtist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Artista o artistas"
+            android:textColor="@android:color/darker_gray"
+            android:textSize="14sp"
+            android:ellipsize="end"
+            android:maxLines="1" />
+    </LinearLayout>
+
+    <!-- Botón de opciones (3 puntos) -->
+    <ImageView
+        android:id="@+id/moreOptions"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_more"
+        android:contentDescription="Más opciones"
+        app:itemIconTint="@color/colorPrimary"
+        android:padding="4dp" />
+</LinearLayout>

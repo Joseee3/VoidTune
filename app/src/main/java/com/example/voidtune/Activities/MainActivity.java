@@ -1,6 +1,7 @@
 package com.example.voidtune.Activities;
 
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -12,16 +13,41 @@ import com.example.voidtune.adapter.CategoryAdapter;
 import com.example.voidtune.adapter.HomeListAdapter;
 import com.example.voidtune.adapter.LibraryListAdapter;
 import com.example.voidtune.entities.LibraryItem;
+import com.google.firebase.Firebase;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.analytics.FirebaseAnalytics;
 
 import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private FirebaseAnalytics mFirebaseAnalytics;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+
+        // Inicializar Firebase Analytics
+        FirebaseApp.initializeApp(this);
+        Log.d("FirebaseTest", "FirebaseApp inicializado correctamente");
+
+        // Configuración de Firebase Analytics
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+
+        //Enviar un evento de inicio de sesión
+        FirebaseAnalytics mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+
+        Bundle bundle = new Bundle();
+        bundle.putString("key", "value");
+        mFirebaseAnalytics.logEvent("login_event", bundle);
+
+        Log.d("FirebaseTest", "Evento de inicio de sesión enviado a Firebase");
+
+        //Log de evento de inicio de sesión
+        mFirebaseAnalytics.logEvent("login_event", null);
 
         // Configuración del RecyclerView para las categorías (horizontal)
         RecyclerView categoryRecyclerView = findViewById(R.id.carouselRecyclerView);

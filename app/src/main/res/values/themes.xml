@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Base.Theme.VoidTune" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
+    <style name="Theme.VoidTune" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorPrimaryVariant">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
     </style>
-
-    <style name="Theme.VoidTune" parent="Base.Theme.VoidTune" />
 </resources>

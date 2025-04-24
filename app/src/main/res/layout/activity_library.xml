@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Activities.LibraryActivity">
+
+<LinearLayout
+    android:id="@+id/top_navigation_bar"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:background="@android:color/black"
+    android:orientation="horizontal"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:gravity="center_vertical">
+
+    <!-- Imagen del usuario -->
+    <ImageView
+        android:id="@+id/userImage"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@drawable/ic_person"
+        android:contentDescription="Imagen del usuario"
+        android:layout_marginEnd="16dp"
+        android:scaleType="centerCrop"
+        android:background="@drawable/circle_background" />
+
+    <!-- Título centrado -->
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Your Library"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:gravity="center" />
+
+
+
+   <ImageView
+       android:id="@+id/add_icon"
+       android:layout_width="35dp"
+       android:layout_height="35dp"
+       android:src="@drawable/icon_plus"
+       app:tint="@color/colorPrimary"
+       android:contentDescription="Agregar"
+       android:padding="8dp"
+       android:layout_marginStart="16dp" />
+
+    <ImageView
+        android:id="@+id/search_icon"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/ic_search"
+        app:tint="@color/colorPrimary"
+        android:contentDescription="Buscar"
+        android:padding="8dp" />
+
+</LinearLayout>
+
+    <!-- Contenido principal envuelto en NestedScrollView -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/top_navigation_bar"
+        android:layout_above="@id/bottomNavigationView"
+        android:background="@android:color/black"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/carouselRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:layout_constraintTop_toBottomOf="@id/toolbar"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!-- Sección 1: Título y RecyclerView -->
+            <TextView
+                android:id="@+id/recentlyPlayedTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Recently Played"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:layout_marginBottom="8dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recentlyPlayedRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Sección 2: Otro título y RecyclerView -->
+            <TextView
+                android:id="@+id/yourPlaylistsTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Your Playlists"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:layout_marginBottom="8dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/yourPlaylistsRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Agrega más secciones según sea necesario -->
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Barra de navegación inferior -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigationView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:menu="@menu/bottom_nav_menu"
+        android:background="#121212"
+        app:itemIconTint="@color/colorPrimary"
+        app:itemTextColor="@color/colorPrimary"
+        app:itemRippleColor="@color/colorAccent"
+        android:layout_alignParentBottom="true" />
+
+</RelativeLayout>

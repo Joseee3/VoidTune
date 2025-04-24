@@ -2,6 +2,7 @@ package com.example.voidtune.Activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
@@ -9,12 +10,27 @@ import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.voidtune.R;
+import com.google.firebase.analytics.FirebaseAnalytics;
 
 public class WelcomeActivity extends AppCompatActivity {
+
+    private FirebaseAnalytics mFirebaseAnalytics;
+    private static final String TAG = "FirebaseDebug";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_welcome);
+
+        // Inicializar Firebase Analytics
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+
+        //Prubea registro de evento
+
+        Bundle bundle = new Bundle();
+        bundle.putString("key", "value");
+        mFirebaseAnalytics.logEvent("welcome_event", bundle);
+        //Log de evento de inicio de sesión
+        Log.d(TAG,"Eventro de prueba enviado a Firebase Analytics");
 
         // Referencia al botón de iniciar sesión
         Button loginButton = findViewById(R.id.loginButton);

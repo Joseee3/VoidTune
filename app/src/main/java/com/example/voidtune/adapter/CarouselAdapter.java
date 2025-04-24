@@ -23,7 +23,7 @@ public class CarouselAdapter extends RecyclerView.Adapter<CarouselAdapter.Carous
     @NonNull
     @Override
     public CarouselViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_librarys, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_librarys_home, parent, false);
         return new CarouselViewHolder(view);
     }
 

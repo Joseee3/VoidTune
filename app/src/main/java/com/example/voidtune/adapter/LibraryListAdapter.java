@@ -28,7 +28,7 @@ public class LibraryListAdapter extends RecyclerView.Adapter<LibraryListAdapter.
     @NonNull
     @Override
     public LibraryViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.item_librarys, parent, false);
+        View view = LayoutInflater.from(context).inflate(R.layout.item_librarys_home, parent, false);
         return new LibraryViewHolder(view);
     }
 
