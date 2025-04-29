@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">VoidTune</string>
+    <string name="spotify_logo">logo</string>
+    <string name="voidtune_logo">logo_void</string>
+</resources>
