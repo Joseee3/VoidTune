@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.TextUtils;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -50,6 +51,8 @@ public class RegisterActivity extends AppCompatActivity {
     private EditText usernameEditText, emailEditText, passwordEditText;
     private Button selectImageButton, registerButton, takePhotoButton;
 
+
+    private static final int CAMERA_REQUEST_CODE = 1000;
     private FirebaseAuth auth;
     private DatabaseReference databaseReference;
 
@@ -94,25 +97,24 @@ public class RegisterActivity extends AppCompatActivity {
         startActivityForResult(Intent.createChooser(intent, "Selecciona una imagen"), PICK_IMAGE_REQUEST);
     }
 
+
+
     private void openCamera() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+        if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            if (intent.resolveActivity(getPackageManager()) != null) {
-                try {
-                    File photoFile = createImageFile();
-                    if (photoFile != null) {
-                        photoUri = FileProvider.getUriForFile(this, "com.example.voidtune.fileprovider", photoFile);
-                        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
-                        startActivityForResult(intent, CAPTURE_IMAGE_REQUEST);
-                    }
-                } catch (IOException e) {
-                    Toast.makeText(this, "Error al crear archivo de imagen.", Toast.LENGTH_SHORT).show();
+
+            try {
+                File file = createImageFile();
+                if (file != null) {
+                    photoUri = FileProvider.getUriForFile(this, "com.example.voidtune.fileprovider", file);
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
+                    startActivityForResult(intent, CAMERA_REQUEST_CODE);
                 }
-            } else {
-                Toast.makeText(this, "No se pudo abrir la cámara.", Toast.LENGTH_SHORT).show();
+            } catch (IOException e) {
+                Toast.makeText(this, "Error creating file: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST);
+            requestPermissions(new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST);
         }
     }
 
@@ -148,10 +150,11 @@ public class RegisterActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
             if (requestCode == PICK_IMAGE_REQUEST && data != null && data.getData() != null) {
-                imageUri = data.getData();
+                imageUri = data.getData(); // URI de la imagen seleccionada
                 profileImageView.setImageURI(imageUri); // Mostrar la imagen seleccionada
-            } else if (requestCode == CAPTURE_IMAGE_REQUEST) {
-                profileImageView.setImageURI(photoUri); // Mostrar la imagen capturada
+            } else if (requestCode == CAMERA_REQUEST_CODE) {
+                imageUri = photoUri; // Actualizar imageUri con la URI de la foto tomada
+                profileImageView.setImageURI(imageUri); // Mostrar la imagen capturada
             }
         }
     }

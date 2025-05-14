@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -11,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.voidtune.entities.Album;
 import com.example.voidtune.API.ApiClient;
 import com.example.voidtune.API.ApiService;
@@ -20,6 +22,9 @@ import com.example.voidtune.entities.Song;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.FirebaseDatabase;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +43,34 @@ public class LibraryActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_library);
+
+
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            String userId = currentUser.getUid(); // Obtén el UID del usuario actual
+            FirebaseDatabase.getInstance().getReference("users")
+                .child(userId)
+                .child("profileImage")
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        String profileImageUri = task.getResult().getValue(String.class);
+                        if (profileImageUri != null && !profileImageUri.isEmpty()) {
+                            ImageView userImage = findViewById(R.id.userImage);
+                            Glide.with(this)
+                                .load(profileImageUri)
+                                .placeholder(R.drawable.ic_person)
+                                .error(R.drawable.ic_person)
+                                .into(userImage);
+                        }
+                    } else {
+                        Log.e("Firebase", "Error al obtener la imagen de perfil: " + task.getException().getMessage());
+                    }
+                });
+        } else {
+            Log.e("Auth", "No hay un usuario autenticado");
+        }
 
         //Abrir Library
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
