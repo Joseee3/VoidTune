@@ -1,5 +1,5 @@
 package com.example.voidtune.API;
-import com.example.voidtune.API.Album;
+import com.example.voidtune.entities.Album;
 import java.util.List;
 
 import retrofit2.Call;

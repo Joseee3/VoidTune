@@ -12,11 +12,9 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.example.voidtune.API.Album;
-import com.example.voidtune.API.Song;
+import com.example.voidtune.entities.Album;
 import com.example.voidtune.Activities.DetailAlbumActivity;
 import com.example.voidtune.R;
-import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,32 +36,35 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
         return new ViewHolder(view);
     }
 
-@Override
-public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-    Album album = albumList.get(position);
-    holder.albumName.setText(album.getName());
+    @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        Album album = albumList.get(position);
+        holder.albumName.setText(album.getName());
+        holder.artistName.setText(album.getArtist());
 
-    if (album.getSongs() != null && !album.getSongs().isEmpty()) {
-        holder.artistName.setText(album.getSongs().get(0).getArtist());
-    } else {
-        holder.artistName.setText("Artista desconocido");
+        Glide.with(context)
+            .load(album.getImageUrl())
+            .placeholder(R.drawable.img_album)
+            .into(holder.albumImage);
+
+        holder.itemView.setOnClickListener(v -> {
+            if (album.getId() != null && album.getName() != null && album.getArtist() != null) {
+                Intent intent = new Intent(context, DetailAlbumActivity.class);
+                intent.putExtra("albumId", album.getId());
+                intent.putExtra("albumName", album.getName());
+                intent.putExtra("albumArtist", album.getArtist());
+                intent.putExtra("albumImage", album.getImageUrl());
+                intent.putStringArrayListExtra("songs", new ArrayList<>(album.getSongs() != null ? album.getSongs() : new ArrayList<>()));
+
+                // Log para depurar
+                android.util.Log.d("LibraryAdapter", "Datos enviados: " + intent.getExtras());
+
+                context.startActivity(intent);
+            } else {
+                android.util.Log.e("LibraryAdapter", "Datos del álbum incompletos: " + album);
+            }
+        });
     }
-
-    Glide.with(context)
-        .load(album.getImageUrl())
-        .placeholder(R.drawable.img_album)
-        .into(holder.albumImage);
-
-
-
-    holder.itemView.setOnClickListener(v -> {
-        Intent intent = new Intent(context, DetailAlbumActivity.class);
-        intent.putExtra("albumName", album.getName());
-        intent.putExtra("albumImage", album.getImageUrl());
-        intent.putExtra("songs", (ArrayList<Song>) album.getSongs()); // Pasar la lista de canciones
-        context.startActivity(intent);
-    });
-}
 
     @Override
     public int getItemCount() {

@@ -1,30 +1,208 @@
 package com.example.voidtune.Activities;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
-import android.view.View;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
+import com.example.voidtune.entities.LikeSong;
+import com.example.voidtune.entities.Playlist;
+import com.example.voidtune.entities.User;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.example.voidtune.R;
 
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+
 public class RegisterActivity extends AppCompatActivity {
+
+    private static final int PICK_IMAGE_REQUEST = 1;
+    private static final int CAPTURE_IMAGE_REQUEST = 2;
+    private static final int CAMERA_PERMISSION_REQUEST = 100;
+
+    private Uri imageUri;
+    private Uri photoUri;
+
+    private ImageView profileImageView;
+    private EditText usernameEditText, emailEditText, passwordEditText;
+    private Button selectImageButton, registerButton, takePhotoButton;
+
+    private FirebaseAuth auth;
+    private DatabaseReference databaseReference;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register_user);
 
-        // Referencia al botón de registrarse
-        Button registerButton = findViewById(R.id.Registeruser);
+        // Inicializar vistas
+        profileImageView = findViewById(R.id.profileImageView);
+        usernameEditText = findViewById(R.id.usernameEditText);
+        emailEditText = findViewById(R.id.emailEditText);
+        passwordEditText = findViewById(R.id.passwordEditText);
+        selectImageButton = findViewById(R.id.selectImageButton);
+        takePhotoButton = findViewById(R.id.takePhotoButton);
+        registerButton = findViewById(R.id.Registeruser);
 
-        // Configurar el evento onClick para abrir MainActivity
-        registerButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
-                startActivity(intent);
+        // Inicializar Firebase
+        auth = FirebaseAuth.getInstance();
+        databaseReference = FirebaseDatabase.getInstance().getReference("users");
+
+        // Acción para seleccionar imagen
+        selectImageButton.setOnClickListener(v -> openImageSelector());
+
+        // Acción para tomar foto
+        takePhotoButton.setOnClickListener(v -> {
+            if (checkCameraPermission()) {
+                openCamera();
+            } else {
+                requestCameraPermission();
+            }
+        });
+
+        // Acción para registrar usuario
+        registerButton.setOnClickListener(v -> registerUser());
+    }
+
+    private void openImageSelector() {
+        Intent intent = new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, "Selecciona una imagen"), PICK_IMAGE_REQUEST);
+    }
+
+    private void openCamera() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            if (intent.resolveActivity(getPackageManager()) != null) {
+                try {
+                    File photoFile = createImageFile();
+                    if (photoFile != null) {
+                        photoUri = FileProvider.getUriForFile(this, "com.example.voidtune.fileprovider", photoFile);
+                        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
+                        startActivityForResult(intent, CAPTURE_IMAGE_REQUEST);
+                    }
+                } catch (IOException e) {
+                    Toast.makeText(this, "Error al crear archivo de imagen.", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(this, "No se pudo abrir la cámara.", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST);
+        }
+    }
+
+    private File createImageFile() throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        return File.createTempFile(imageFileName, ".jpg", storageDir);
+    }
+
+    private boolean checkCameraPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestCameraPermission() {
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CAMERA_PERMISSION_REQUEST) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openCamera();
+            } else {
+                Toast.makeText(this, "Permiso de cámara denegado.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            if (requestCode == PICK_IMAGE_REQUEST && data != null && data.getData() != null) {
+                imageUri = data.getData();
+                profileImageView.setImageURI(imageUri); // Mostrar la imagen seleccionada
+            } else if (requestCode == CAPTURE_IMAGE_REQUEST) {
+                profileImageView.setImageURI(photoUri); // Mostrar la imagen capturada
+            }
+        }
+    }
+
+   private void registerUser() {
+    String username = usernameEditText.getText().toString().trim();
+    String email = emailEditText.getText().toString().trim();
+    String password = passwordEditText.getText().toString().trim();
+
+    if (TextUtils.isEmpty(username) || TextUtils.isEmpty(email) || TextUtils.isEmpty(password) || imageUri == null) {
+        Toast.makeText(this, "Por favor, completa todos los campos y selecciona una imagen.", Toast.LENGTH_SHORT).show();
+        return;
+    }
+
+    auth.createUserWithEmailAndPassword(email, password)
+        .addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                FirebaseUser firebaseUser = auth.getCurrentUser();
+                if (firebaseUser != null) {
+                    String userId = firebaseUser.getUid();
+
+                    // Crear estructura inicial del usuario
+                    User user = new User(username, email, imageUri.toString());
+                    databaseReference.child(userId).setValue(user)
+                        .addOnCompleteListener(dbTask -> {
+                            if (dbTask.isSuccessful()) {
+                                // Crear nodos adicionales en una sola operación
+                                HashMap<String, Object> additionalData = new HashMap<>();
+                                additionalData.put("likeSong", new ArrayList<LikeSong>());
+                                additionalData.put("playlist", new ArrayList<Playlist>());
+                                additionalData.put("recentlyPlayed", new ArrayList<>());
+                                additionalData.put("followers", new ArrayList<>());
+                                additionalData.put("following", new ArrayList<>());
+                                additionalData.put("savedAlbums", new ArrayList<>());
+
+                                databaseReference.child(userId).updateChildren(additionalData)
+                                    .addOnCompleteListener(additionalTask -> {
+                                        if (additionalTask.isSuccessful()) {
+                                            Toast.makeText(this, "Usuario registrado exitosamente.", Toast.LENGTH_SHORT).show();
+                                            finish(); // Cerrar actividad
+                                        } else {
+                                            Toast.makeText(this, "Error al crear nodos adicionales: " + additionalTask.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+                            } else {
+                                Toast.makeText(this, "Error al guardar datos: " + dbTask.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                }
+            } else {
+                Toast.makeText(this, "Error al registrar usuario: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }

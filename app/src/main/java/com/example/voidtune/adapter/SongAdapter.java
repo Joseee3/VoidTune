@@ -1,64 +1,56 @@
 package com.example.voidtune.adapter;
 
-import android.content.Context;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
+        import android.content.Context;
+        import android.view.LayoutInflater;
+        import android.view.View;
+        import android.view.ViewGroup;
+        import android.widget.TextView;
 
-import com.example.voidtune.R;
-import com.example.voidtune.API.Song;
+        import androidx.annotation.NonNull;
+        import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.ArrayList;
-import java.util.List;
+        import com.example.voidtune.R;
+        import com.example.voidtune.entities.Song;
 
-public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder> {
+        import java.util.ArrayList;
+        import java.util.List;
 
-    private Context context;
-    private List<Song> songs;
+       public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder> {
 
-    // Constructor
-    public SongAdapter(Context context, List<Song> songs) {
-        this.context = context;
-        // Inicializar la lista como vacía si es null
-        this.songs = songs != null ? songs : new ArrayList<>();
-    }
+        private final Context context;
+        private final ArrayList<Song> songs;
 
-    @NonNull
-    @Override
-    public SongViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.item_song, parent, false);
-        return new SongViewHolder(view);
-    }
+        public SongAdapter(Context context, ArrayList<Song> songs) {
+            this.context = context;
+            this.songs = songs;
+        }
 
-    @Override
-    public void onBindViewHolder(@NonNull SongViewHolder holder, int position) {
-        Song song = songs.get(position);
-        holder.songTitle.setText(song.getTitle());
-        holder.songArtist.setText(song.getArtist());
-    }
+        @NonNull
+        @Override
+        public SongViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(context).inflate(R.layout.item_song, parent, false);
+            return new SongViewHolder(view);
+        }
 
-    @Override
-    public int getItemCount() {
-        return songs.size();
-    }
+        @Override
+        public void onBindViewHolder(@NonNull SongViewHolder holder, int position) {
+            Song song = songs.get(position);
+            holder.songTitle.setText(song.getName()); // Cambiado de getTitle() a getName()
+            holder.songArtist.setText(song.getArtist());
+        }
 
-    // Método para actualizar la lista de canciones
-    public void updateSongs(List<Song> newSongs) {
-        this.songs = newSongs != null ? newSongs : new ArrayList<>();
-        notifyDataSetChanged();
-    }
+        @Override
+        public int getItemCount() {
+            return songs.size();
+        }
 
-    public static class SongViewHolder extends RecyclerView.ViewHolder {
-        TextView songTitle;
-        TextView songArtist;
+        public static class SongViewHolder extends RecyclerView.ViewHolder {
+            TextView songTitle, songArtist;
 
-        public SongViewHolder(@NonNull View itemView) {
-            super(itemView);
-            songTitle = itemView.findViewById(R.id.songTitle);
-            songArtist = itemView.findViewById(R.id.songArtist);
+            public SongViewHolder(@NonNull View itemView) {
+                super(itemView);
+                songTitle = itemView.findViewById(R.id.songTitle);
+                songArtist = itemView.findViewById(R.id.songArtist);
+            }
         }
     }
-}

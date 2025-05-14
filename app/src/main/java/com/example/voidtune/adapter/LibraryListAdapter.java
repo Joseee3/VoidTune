@@ -11,9 +11,8 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.example.voidtune.API.Album;
+import com.example.voidtune.entities.Album;
 import com.example.voidtune.R;
-import com.example.voidtune.entities.LibraryItem;
 
 import java.util.List;
 

@@ -1,18 +1,22 @@
-package com.example.voidtune.API;
+package com.example.voidtune.entities;
 
 import java.io.Serializable;
 
 public class Song implements Serializable {
-    private String title;
+    private String name;
     private String artist;
     private String duracion;
     private String genero;
     private String id;
     private String albumId;
+    // Constructor vacío requerido por Firebase
+    public Song() {
+        // Constructor vacío requerido por Firebase
+    }
 
     // Constructor
-    public Song(String title, String artist, String duracion, String genero, String id, String albumId) {
-        this.title = title;
+    public Song(String name, String artist, String duracion, String genero, String id, String albumId) {
+        this.name = name;
         this.artist = artist;
         this.duracion = duracion;
         this.genero = genero;
@@ -21,12 +25,12 @@ public class Song implements Serializable {
     }
 
     // Getters y setters
-    public String getTitle() {
-        return title;
+    public String getName() {
+        return name;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
+    public void setName(String title) {
+        this.name = title;
     }
 
     public String getArtist() {

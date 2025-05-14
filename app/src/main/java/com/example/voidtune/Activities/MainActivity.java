@@ -11,18 +11,20 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.voidtune.API.Song;
+import com.example.voidtune.entities.Song;
 import com.example.voidtune.R;
 import com.example.voidtune.adapter.CategoryAdapter;
 import com.example.voidtune.adapter.HomeListAdapter;
 import com.example.voidtune.adapter.LibraryListAdapter;
 import com.example.voidtune.API.ApiClient;
 import com.example.voidtune.API.ApiService;
-import com.example.voidtune.API.Album;
+import com.example.voidtune.entities.Album;
 import com.example.voidtune.entities.LibraryItem;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.firebase.FirebaseApp;
 import com.google.firebase.analytics.FirebaseAnalytics;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +35,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
+
+    private DatabaseReference databaseReference;
 
     private FirebaseAnalytics mFirebaseAnalytics;
     private List<Album> albumItems = new ArrayList<>();
@@ -67,6 +71,9 @@ public class MainActivity extends AppCompatActivity {
         libraryRecyclerView.setAdapter(libraryAdapter);
 
 
+        databaseReference = FirebaseDatabase.getInstance().getReference();
+
+
 
         //Abrir Library
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
@@ -94,7 +101,9 @@ public class MainActivity extends AppCompatActivity {
         inicializarRecyclerViews();
 
         // Cargar datos de la API
-        obtenerAlbumesDeLaApi();
+        //obtenerAlbumesDeLaApi();
+        // Cargar datos de Firebase
+        obtenerAlbumesDesdeFirebase();
     }
 
     private void inicializarRecyclerViews() {
@@ -299,10 +308,53 @@ private void configurarRecyclerView(int recyclerViewId, List<Album> albums) {
 
     private void abrirDetalle(Album album) {
         Intent intent = new Intent(MainActivity.this, DetailAlbumActivity.class);
+        intent.putExtra("albumId", album.getId()); // Pasar el ID del álbum
         intent.putExtra("albumName", album.getName());
         intent.putExtra("albumImage", album.getImageUrl());
-        intent.putExtra("songs", (ArrayList<Song>) album.getSongs());
+        intent.putStringArrayListExtra("songs", new ArrayList<>(album.getSongs())); // Pasar lista de IDs de canciones
         startActivity(intent);
+    }
+
+
+
+    //FIREBASE
+
+
+    private void obtenerAlbumesDesdeFirebase() {
+        databaseReference.child("albums").get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                List<Album> albums = new ArrayList<>();
+                for (DataSnapshot snapshot : task.getResult().getChildren()) {
+                    String albumId = snapshot.getKey();
+                    String name = snapshot.child("name").getValue(String.class);
+                    String artist = snapshot.child("artist").getValue(String.class);
+                    String imageUrl = snapshot.child("imageURL").getValue(String.class);
+                    List<String> songs = new ArrayList<>();
+                    for (DataSnapshot songSnapshot : snapshot.child("songs").getChildren()) {
+                        songs.add(songSnapshot.getValue(String.class));
+                    }
+
+                    Album album = new Album(albumId, name, artist, imageUrl, songs);
+                    albums.add(album);
+                }
+                actualizarUIConAlbumes(albums);
+            } else {
+                Log.e("Firebase", "Error al obtener álbumes: " + task.getException().getMessage());
+            }
+        });
+    }
+
+    private void cargarAlbumYAbrirDetalleFirebase(String albumId) {
+        databaseReference.child("albums").child(albumId).get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                Album album = task.getResult().getValue(Album.class);
+                if (album != null) {
+                    abrirDetalle(album);
+                }
+            } else {
+                Log.e("Firebase", "Error al cargar álbum: " + task.getException().getMessage());
+            }
+        });
     }
 
 

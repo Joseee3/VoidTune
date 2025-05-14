@@ -9,7 +9,7 @@ plugins {
 
         defaultConfig {
             applicationId "com.example.voidtune"
-            minSdk 21
+            minSdk 23
             targetSdk 35
             versionCode 1
             versionName "1.0"
@@ -34,6 +34,8 @@ plugins {
         implementation libs.material
         implementation libs.activity
         implementation libs.constraintlayout
+        implementation libs.firebase.auth
+        implementation libs.firebase.database
         testImplementation libs.junit
         androidTestImplementation libs.ext.junit
         androidTestImplementation libs.espresso.core
@@ -41,6 +43,10 @@ plugins {
         implementation platform('com.google.firebase:firebase-bom:33.12.0')
 
         implementation 'com.google.firebase:firebase-analytics:22.4.0'
+
+        implementation 'com.google.firebase:firebase-auth:21.1.0'
+
+        implementation 'com.google.firebase:firebase-database:21.0.0'
 
         implementation 'com.squareup.retrofit2:retrofit:2.9.0'
         implementation 'com.squareup.retrofit2:converter-gson:2.9.0'

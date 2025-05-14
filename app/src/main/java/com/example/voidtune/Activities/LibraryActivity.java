@@ -11,12 +11,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.voidtune.API.Album;
+import com.example.voidtune.entities.Album;
 import com.example.voidtune.API.ApiClient;
 import com.example.voidtune.API.ApiService;
 import com.example.voidtune.R;
 import com.example.voidtune.adapter.LibraryAdapter;
+import com.example.voidtune.entities.Song;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,7 +70,10 @@ public class LibraryActivity extends AppCompatActivity {
         albumsRecyclerView.setAdapter(libraryAdapter);
 
         // Cargar datos
-        cargarDatosDesdeAPI();
+        //cargarDatosDesdeAPI();
+        // Descomentar si se desea cargar desde Firebase
+        cargarCancionesDesdeFirebase();
+
     }
 
     private void cargarDatosDesdeAPI() {
@@ -95,5 +101,33 @@ public class LibraryActivity extends AppCompatActivity {
                 Toast.makeText(LibraryActivity.this, "Error al cargar datos", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+
+   private void cargarCancionesDesdeFirebase() {
+        FirebaseDatabase.getInstance().getReference("songs")
+            .get()
+            .addOnCompleteListener(task -> {
+                if (task.isSuccessful() && task.getResult() != null) {
+                    albumItems.clear(); // Limpia la lista antes de agregar nuevos datos
+                    for (DataSnapshot songSnapshot : task.getResult().getChildren()) {
+                        Song song = songSnapshot.getValue(Song.class);
+                        if (song != null) {
+                            Album album = new Album(
+                                song.getAlbumId(), // id del álbum
+                                song.getName(),    // nombre de la canción
+                                song.getArtist(),  // artista
+                                null,              // imageUrl (puedes asignar un valor si lo tienes)
+                                null               // lista de canciones (puedes asignar un valor si lo tienes)
+                            );
+                            albumItems.add(album);
+                        }
+                    }
+                    libraryAdapter.notifyDataSetChanged();
+                } else {
+                    Log.e("Firebase", "Error al cargar canciones: " + task.getException().getMessage());
+                    Toast.makeText(this, "Error al cargar canciones", Toast.LENGTH_SHORT).show();
+                }
+            });
     }
 }
