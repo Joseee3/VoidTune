@@ -47,6 +47,28 @@ public class DetailAlbumActivity extends AppCompatActivity {
        albumTitle.setText(albumName);
        Glide.with(this).load(albumImage).into(albumCover);
 
+
+       //Abrir Library
+       BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
+
+       bottomNavigationView.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
+           @Override
+           public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+               int itemId = item.getItemId();
+               if (itemId == R.id.menu_home) {
+                   startActivity(new Intent(DetailAlbumActivity.this, MainActivity.class));
+                   return true;
+               } else if (itemId == R.id.menu_search) {
+                   // Acción para el menú Search
+                   return true;
+               } else if (itemId == R.id.menu_library) {
+                   startActivity(new Intent(DetailAlbumActivity.this, LibraryActivity.class));
+                   return true;
+               }
+               return false;
+           }
+       });
+
        // Configurar RecyclerView
        songsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
        ArrayList<Song> songs = new ArrayList<>();

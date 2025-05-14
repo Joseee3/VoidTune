@@ -72,7 +72,7 @@ public class LibraryActivity extends AppCompatActivity {
         // Cargar datos
         //cargarDatosDesdeAPI();
         // Descomentar si se desea cargar desde Firebase
-        cargarCancionesDesdeFirebase();
+        cargarAlbumesDesdeFirebase();
 
     }
 
@@ -104,30 +104,30 @@ public class LibraryActivity extends AppCompatActivity {
     }
 
 
-   private void cargarCancionesDesdeFirebase() {
-        FirebaseDatabase.getInstance().getReference("songs")
-            .get()
-            .addOnCompleteListener(task -> {
-                if (task.isSuccessful() && task.getResult() != null) {
-                    albumItems.clear(); // Limpia la lista antes de agregar nuevos datos
-                    for (DataSnapshot songSnapshot : task.getResult().getChildren()) {
-                        Song song = songSnapshot.getValue(Song.class);
-                        if (song != null) {
-                            Album album = new Album(
-                                song.getAlbumId(), // id del álbum
-                                song.getName(),    // nombre de la canción
-                                song.getArtist(),  // artista
-                                null,              // imageUrl (puedes asignar un valor si lo tienes)
-                                null               // lista de canciones (puedes asignar un valor si lo tienes)
-                            );
-                            albumItems.add(album);
-                        }
-                    }
-                    libraryAdapter.notifyDataSetChanged();
-                } else {
-                    Log.e("Firebase", "Error al cargar canciones: " + task.getException().getMessage());
-                    Toast.makeText(this, "Error al cargar canciones", Toast.LENGTH_SHORT).show();
-                }
-            });
-    }
+   private void cargarAlbumesDesdeFirebase() {
+       FirebaseDatabase.getInstance().getReference("albums")
+           .get()
+           .addOnCompleteListener(task -> {
+               if (task.isSuccessful() && task.getResult() != null) {
+                   albumItems.clear(); // Clear the list before adding new data
+                   for (DataSnapshot albumSnapshot : task.getResult().getChildren()) {
+                       String albumId = albumSnapshot.getKey();
+                       String name = albumSnapshot.child("name").getValue(String.class);
+                       String artist = albumSnapshot.child("artist").getValue(String.class);
+                       String imageUrl = albumSnapshot.child("imageURL").getValue(String.class);
+                       List<String> songs = new ArrayList<>();
+                       for (DataSnapshot songSnapshot : albumSnapshot.child("songs").getChildren()) {
+                           songs.add(songSnapshot.getValue(String.class));
+                       }
+
+                       Album album = new Album(albumId, name, artist, imageUrl, songs);
+                       albumItems.add(album);
+                   }
+                   libraryAdapter.notifyDataSetChanged();
+               } else {
+                   Log.e("Firebase", "Error loading albums: " + task.getException().getMessage());
+                   Toast.makeText(this, "Error loading albums", Toast.LENGTH_SHORT).show();
+               }
+           });
+   }
 }
