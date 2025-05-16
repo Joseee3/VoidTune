@@ -150,10 +150,11 @@
                     android:background="@drawable/border_button"
                     android:layout_marginBottom="8dp" />
 
-                <TextView
+                <Button
+                    android:id="@+id/add_playlists_button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="+ Agregar podcasts y programas"
+                    android:text="+ Agregar playlists"
                     android:textColor="@android:color/white"
                     android:textSize="16sp"
                     android:padding="12dp"

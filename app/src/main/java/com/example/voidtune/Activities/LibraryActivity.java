@@ -1,9 +1,13 @@
 package com.example.voidtune.Activities;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -21,12 +25,14 @@ import com.example.voidtune.adapter.LibraryAdapter;
 import com.example.voidtune.entities.Song;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import retrofit2.Call;
@@ -39,12 +45,12 @@ public class LibraryActivity extends AppCompatActivity {
     private LibraryAdapter libraryAdapter;
     private List<Album> albumItems;
 
+    private DatabaseReference databaseReference;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_library);
-
-
 
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
@@ -72,7 +78,7 @@ public class LibraryActivity extends AppCompatActivity {
             Log.e("Auth", "No hay un usuario autenticado");
         }
 
-        //Abrir Library
+        // Abrir Library
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
 
         bottomNavigationView.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
@@ -103,10 +109,10 @@ public class LibraryActivity extends AppCompatActivity {
         albumsRecyclerView.setAdapter(libraryAdapter);
 
         // Cargar datos
-        //cargarDatosDesdeAPI();
-        // Descomentar si se desea cargar desde Firebase
         cargarAlbumesDesdeFirebase();
 
+        Button addPlaylistButton = findViewById(R.id.add_playlists_button);
+        addPlaylistButton.setOnClickListener(v -> showCreatePlaylistDialog());
     }
 
     private void cargarDatosDesdeAPI() {
@@ -163,4 +169,60 @@ public class LibraryActivity extends AppCompatActivity {
                }
            });
    }
+
+
+   private void showCreatePlaylistDialog() {
+       AlertDialog dialog = new AlertDialog.Builder(this).create();
+       View dialogView = getLayoutInflater().inflate(R.layout.dialog_create_playlist, null);
+       dialog.setView(dialogView);
+
+       EditText input = dialogView.findViewById(R.id.playlistNameInput);
+       Button createButton = dialogView.findViewById(R.id.createPlaylistButton);
+
+       createButton.setOnClickListener(v -> {
+           String playlistName = input.getText().toString().trim();
+           if (!playlistName.isEmpty()) {
+               createPlaylist(playlistName);
+               dialog.dismiss();
+           } else {
+               Toast.makeText(this, "Playlist name cannot be empty.", Toast.LENGTH_SHORT).show();
+           }
+       });
+
+       dialog.show();
+   }
+
+
+   private void createPlaylist(String playlistName) {
+       FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+       if (currentUser != null) {
+           String userId = currentUser.getUid(); // Obtén el UID del usuario actual
+           DatabaseReference playlistsRef = FirebaseDatabase.getInstance()
+               .getReference("users")
+               .child(userId)
+               .child("playlists"); // Nodo específico para playlists
+
+           // Generar un ID único para la playlist
+           String playlistId = playlistsRef.push().getKey();
+
+           if (playlistId != null) {
+               HashMap<String, Object> playlistData = new HashMap<>();
+               playlistData.put("name", playlistName);
+               playlistData.put("albums", new ArrayList<>()); // Lista vacía de álbumes
+
+               playlistsRef.child(playlistId).setValue(playlistData)
+                   .addOnCompleteListener(task -> {
+                       if (task.isSuccessful()) {
+                           Toast.makeText(this, "Playlist created successfully.", Toast.LENGTH_SHORT).show();
+                       } else {
+                           Toast.makeText(this, "Failed to create playlist: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                       }
+                   });
+           }
+       } else {
+           Toast.makeText(this, "User not authenticated.", Toast.LENGTH_SHORT).show();
+       }
+   }
+
+
 }

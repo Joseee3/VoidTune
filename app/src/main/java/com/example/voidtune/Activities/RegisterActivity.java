@@ -160,53 +160,45 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
    private void registerUser() {
-    String username = usernameEditText.getText().toString().trim();
-    String email = emailEditText.getText().toString().trim();
-    String password = passwordEditText.getText().toString().trim();
+       String username = usernameEditText.getText().toString().trim();
+       String email = emailEditText.getText().toString().trim();
+       String password = passwordEditText.getText().toString().trim();
 
-    if (TextUtils.isEmpty(username) || TextUtils.isEmpty(email) || TextUtils.isEmpty(password) || imageUri == null) {
-        Toast.makeText(this, "Por favor, completa todos los campos y selecciona una imagen.", Toast.LENGTH_SHORT).show();
-        return;
-    }
+       if (TextUtils.isEmpty(username) || TextUtils.isEmpty(email) || TextUtils.isEmpty(password) || imageUri == null) {
+           Toast.makeText(this, "Please complete all fields and select an image.", Toast.LENGTH_SHORT).show();
+           return;
+       }
 
-    auth.createUserWithEmailAndPassword(email, password)
-        .addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                FirebaseUser firebaseUser = auth.getCurrentUser();
-                if (firebaseUser != null) {
-                    String userId = firebaseUser.getUid();
+       auth.createUserWithEmailAndPassword(email, password)
+           .addOnCompleteListener(task -> {
+               if (task.isSuccessful()) {
+                   FirebaseUser firebaseUser = auth.getCurrentUser();
+                   if (firebaseUser != null) {
+                       String userId = firebaseUser.getUid();
 
-                    // Crear estructura inicial del usuario
-                    User user = new User(username, email, imageUri.toString());
-                    databaseReference.child(userId).setValue(user)
-                        .addOnCompleteListener(dbTask -> {
-                            if (dbTask.isSuccessful()) {
-                                // Crear nodos adicionales en una sola operación
-                                HashMap<String, Object> additionalData = new HashMap<>();
-                                additionalData.put("likeSong", new ArrayList<LikeSong>());
-                                additionalData.put("playlist", new ArrayList<Playlist>());
-                                additionalData.put("recentlyPlayed", new ArrayList<>());
-                                additionalData.put("followers", new ArrayList<>());
-                                additionalData.put("following", new ArrayList<>());
-                                additionalData.put("savedAlbums", new ArrayList<>());
+                       // Create initial user structure
+                       HashMap<String, Object> userData = new HashMap<>();
+                       userData.put("email", email);
+                       userData.put("profileImage", imageUri.toString());
+                       userData.put("username", username);
 
-                                databaseReference.child(userId).updateChildren(additionalData)
-                                    .addOnCompleteListener(additionalTask -> {
-                                        if (additionalTask.isSuccessful()) {
-                                            Toast.makeText(this, "Usuario registrado exitosamente.", Toast.LENGTH_SHORT).show();
-                                            finish(); // Cerrar actividad
-                                        } else {
-                                            Toast.makeText(this, "Error al crear nodos adicionales: " + additionalTask.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                        }
-                                    });
-                            } else {
-                                Toast.makeText(this, "Error al guardar datos: " + dbTask.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                }
-            } else {
-                Toast.makeText(this, "Error al registrar usuario: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
+
+                       // Save data to Firebase
+                       databaseReference.child(userId).setValue(userData)
+                           .addOnCompleteListener(dbTask -> {
+                               if (dbTask.isSuccessful()) {
+                                   Toast.makeText(this, "User registered successfully.", Toast.LENGTH_SHORT).show();
+                                   finish(); // Close activity
+                               } else {
+                                   Log.e("Firebase", "Error saving data", dbTask.getException());
+                                   Toast.makeText(this, "Error saving data: " + dbTask.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                               }
+                           });
+                   }
+               } else {
+                   Log.e("Firebase", "Error registering user", task.getException());
+                   Toast.makeText(this, "Error registering user: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+               }
+           });
+   }
 }

@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -13,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.voidtune.entities.Album;
+import com.example.voidtune.entities.Song;
 import com.example.voidtune.Activities.DetailAlbumActivity;
 import com.example.voidtune.R;
 
@@ -23,6 +25,8 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
 
     private Context context;
     private List<Album> albumList;
+
+    private List<Song> songList;
 
     public LibraryAdapter(Context context, List<Album> albumList) {
         this.context = context;
@@ -38,6 +42,8 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+
+
         Album album = albumList.get(position);
         holder.albumName.setText(album.getName());
         holder.artistName.setText(album.getArtist());
