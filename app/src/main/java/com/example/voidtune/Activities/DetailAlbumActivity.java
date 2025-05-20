@@ -81,7 +81,7 @@ public class DetailAlbumActivity extends AppCompatActivity {
            .addOnCompleteListener(task -> {
                if (task.isSuccessful() && task.getResult() != null) {
                    for (DataSnapshot songSnapshot : task.getResult().getChildren()) {
-                       String songId = songSnapshot.getValue(String.class); // Obtener el valor del índice
+                       String songId = songSnapshot.getValue(String.class); // Obtener el ID de la canción
                        if (songId != null) {
                            FirebaseDatabase.getInstance().getReference("songs").child(songId)
                                .get()
@@ -89,6 +89,7 @@ public class DetailAlbumActivity extends AppCompatActivity {
                                    if (songTask.isSuccessful() && songTask.getResult() != null) {
                                        Song song = songTask.getResult().getValue(Song.class);
                                        if (song != null) {
+                                           song.setId(songId); // Asignar manualmente el ID al objeto Song
                                            songs.add(song);
                                            songAdapter.notifyItemInserted(songs.size() - 1);
                                        }

@@ -13,15 +13,18 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.example.voidtune.adapter.PlaylistAdapter;
 import com.example.voidtune.entities.Album;
 import com.example.voidtune.API.ApiClient;
 import com.example.voidtune.API.ApiService;
 import com.example.voidtune.R;
 import com.example.voidtune.adapter.LibraryAdapter;
+import com.example.voidtune.entities.LibraryItem;
 import com.example.voidtune.entities.Song;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.database.DataSnapshot;
@@ -54,7 +57,7 @@ public class LibraryActivity extends AppCompatActivity {
 
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
-            String userId = currentUser.getUid(); // Obtén el UID del usuario actual
+            String userId = currentUser.getUid();
             FirebaseDatabase.getInstance().getReference("users")
                 .child(userId)
                 .child("profileImage")
@@ -80,23 +83,18 @@ public class LibraryActivity extends AppCompatActivity {
 
         // Abrir Library
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
-
-        bottomNavigationView.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
-            @Override
-            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                int itemId = item.getItemId();
-                if (itemId == R.id.menu_home) {
-                    startActivity(new Intent(LibraryActivity.this, MainActivity.class));
-                    return true;
-                } else if (itemId == R.id.menu_search) {
-                    // Acción para el menú Search
-                    return true;
-                } else if (itemId == R.id.menu_library) {
-                    startActivity(new Intent(LibraryActivity.this, LibraryActivity.class));
-                    return true;
-                }
-                return false;
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            if (itemId == R.id.menu_home) {
+                startActivity(new Intent(LibraryActivity.this, MainActivity.class));
+                return true;
+            } else if (itemId == R.id.menu_search) {
+                return true;
+            } else if (itemId == R.id.menu_library) {
+                startActivity(new Intent(LibraryActivity.this, LibraryActivity.class));
+                return true;
             }
+            return false;
         });
 
         // Configurar RecyclerView
@@ -104,72 +102,110 @@ public class LibraryActivity extends AppCompatActivity {
         albumsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         // Inicializar lista y adaptador
-        albumItems = new ArrayList<>();
-        libraryAdapter = new LibraryAdapter(this, albumItems);
-        albumsRecyclerView.setAdapter(libraryAdapter);
+//        albumItems = new ArrayList<>(); // Inicializa la lista
+//        List<LibraryItem> libraryItems = new ArrayList<>();
+//        for (Album album : albumItems) {
+//            libraryItems.add(new LibraryItem(
+//                album.getId(),
+//                album.getName(),
+//                album.getArtist(),
+//                album.getImageUrl(),
+//                "album"
+//            ));
+//        }
+
+//        libraryAdapter = new LibraryAdapter(this, libraryItems);
+//        albumsRecyclerView.setAdapter(libraryAdapter);
 
         // Cargar datos
-        cargarAlbumesDesdeFirebase();
+        cargarLibraryItemsDesdeFirebase();
 
         Button addPlaylistButton = findViewById(R.id.add_playlists_button);
         addPlaylistButton.setOnClickListener(v -> showCreatePlaylistDialog());
     }
+//    private void cargarDatosDesdeAPI() {
+//        ApiService apiService = ApiClient.getClient().create(ApiService.class);
+//        Call<List<Album>> call = apiService.getAlbums();
+//
+//        call.enqueue(new Callback<List<Album>>() {
+//            @Override
+//            public void onResponse(Call<List<Album>> call, Response<List<Album>> response) {
+//                if (response.isSuccessful() && response.body() != null) {
+//                    List<Album> albums = response.body();
+//                    albumItems.clear();
+//                    albumItems.addAll(albums);
+//                    libraryAdapter.notifyDataSetChanged();
+//                    Log.d("API", "Se cargaron con éxito " + albums.size() + " álbumes");
+//                } else {
+//                    Log.e("API", "Error en la respuesta de la API: " + response.code());
+//                    Toast.makeText(LibraryActivity.this, "Error al cargar datos", Toast.LENGTH_SHORT).show();
+//                }
+//            }
+//
+//            @Override
+//            public void onFailure(Call<List<Album>> call, Throwable t) {
+//                Log.e("API", "La llamada a la API falló: " + t.getMessage());
+//                Toast.makeText(LibraryActivity.this, "Error al cargar datos", Toast.LENGTH_SHORT).show();
+//            }
+//        });
+//    }
 
-    private void cargarDatosDesdeAPI() {
-        ApiService apiService = ApiClient.getClient().create(ApiService.class);
-        Call<List<Album>> call = apiService.getAlbums();
 
-        call.enqueue(new Callback<List<Album>>() {
-            @Override
-            public void onResponse(Call<List<Album>> call, Response<List<Album>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    List<Album> albums = response.body();
-                    albumItems.clear();
-                    albumItems.addAll(albums);
-                    libraryAdapter.notifyDataSetChanged();
-                    Log.d("API", "Se cargaron con éxito " + albums.size() + " álbumes");
-                } else {
-                    Log.e("API", "Error en la respuesta de la API: " + response.code());
-                    Toast.makeText(LibraryActivity.this, "Error al cargar datos", Toast.LENGTH_SHORT).show();
+  private void cargarLibraryItemsDesdeFirebase() {
+        // Inicializa el RecyclerView
+        RecyclerView libraryRecyclerView = findViewById(R.id.albumsRecyclerView);
+
+        if (libraryRecyclerView == null) {
+            Log.e("LibraryActivity", "libraryRecyclerView is null. Check the XML layout.");
+            return;
+        }
+        libraryRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Log.e("Firebase", "User is not authenticated.");
+            return;
+        }
+
+        String userId = currentUser.getUid();
+        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId).child("playlists");
+
+        List<LibraryItem> libraryItems = new ArrayList<>();
+
+        userRef.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                for (DataSnapshot playlistSnapshot : task.getResult().getChildren()) {
+                    String playlistId = playlistSnapshot.getKey();
+                    String name = playlistSnapshot.child("name").getValue(String.class);
+                    String imageUrl = playlistSnapshot.child("imageURL").getValue(String.class);
+
+                    if (name != null && !name.isEmpty()) {
+                        if (imageUrl == null || imageUrl.isEmpty()) {
+                            imageUrl = "url_to_default_playlist_image"; // Imagen por defecto
+                        }
+                        libraryItems.add(new LibraryItem(playlistId, name, imageUrl, "playlist"));
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<List<Album>> call, Throwable t) {
-                Log.e("API", "La llamada a la API falló: " + t.getMessage());
-                Toast.makeText(LibraryActivity.this, "Error al cargar datos", Toast.LENGTH_SHORT).show();
+                // Configura el adaptador con el RecyclerView correcto
+                PlaylistAdapter playlistAdapter = new PlaylistAdapter(this, libraryItems);
+                libraryRecyclerView.setAdapter(playlistAdapter);
+
+                playlistAdapter.setOnItemClickListener(item -> {
+                    Intent intent = new Intent(this, DetailPlaylistActivity.class);
+                    intent.putExtra("playlistId", item.getId());
+                    intent.putExtra("playlistName", item.getTitle());
+                    intent.putExtra("playlistImage", item.getImageUrl());
+                    intent.putExtra("type", "playlist");
+                    startActivity(intent);
+                });
+
+                playlistAdapter.notifyDataSetChanged();
+            } else {
+                Log.e("Firebase", "Error loading playlists: " + task.getException());
             }
         });
     }
-
-
-   private void cargarAlbumesDesdeFirebase() {
-       FirebaseDatabase.getInstance().getReference("albums")
-           .get()
-           .addOnCompleteListener(task -> {
-               if (task.isSuccessful() && task.getResult() != null) {
-                   albumItems.clear(); // Clear the list before adding new data
-                   for (DataSnapshot albumSnapshot : task.getResult().getChildren()) {
-                       String albumId = albumSnapshot.getKey();
-                       String name = albumSnapshot.child("name").getValue(String.class);
-                       String artist = albumSnapshot.child("artist").getValue(String.class);
-                       String imageUrl = albumSnapshot.child("imageURL").getValue(String.class);
-                       List<String> songs = new ArrayList<>();
-                       for (DataSnapshot songSnapshot : albumSnapshot.child("songs").getChildren()) {
-                           songs.add(songSnapshot.getValue(String.class));
-                       }
-
-                       Album album = new Album(albumId, name, artist, imageUrl, songs);
-                       albumItems.add(album);
-                   }
-                   libraryAdapter.notifyDataSetChanged();
-               } else {
-                   Log.e("Firebase", "Error loading albums: " + task.getException().getMessage());
-                   Toast.makeText(this, "Error loading albums", Toast.LENGTH_SHORT).show();
-               }
-           });
-   }
-
 
    private void showCreatePlaylistDialog() {
        AlertDialog dialog = new AlertDialog.Builder(this).create();
@@ -214,6 +250,7 @@ public class LibraryActivity extends AppCompatActivity {
                    .addOnCompleteListener(task -> {
                        if (task.isSuccessful()) {
                            Toast.makeText(this, "Playlist created successfully.", Toast.LENGTH_SHORT).show();
+                           cargarLibraryItemsDesdeFirebase(); // Actualiza la lista
                        } else {
                            Toast.makeText(this, "Failed to create playlist: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                        }

@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.voidtune.entities.Album;
+import com.example.voidtune.entities.LibraryItem;
 import com.example.voidtune.entities.Song;
 import com.example.voidtune.Activities.DetailAlbumActivity;
 import com.example.voidtune.R;
@@ -24,13 +25,11 @@ import java.util.List;
 public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHolder> {
 
     private Context context;
-    private List<Album> albumList;
+    private List<LibraryItem> libraryItems;
 
-    private List<Song> songList;
-
-    public LibraryAdapter(Context context, List<Album> albumList) {
+    public LibraryAdapter(Context context, List<LibraryItem> libraryItems) {
         this.context = context;
-        this.albumList = albumList;
+        this.libraryItems = libraryItems;
     }
 
     @NonNull
@@ -42,50 +41,65 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        LibraryItem item = libraryItems.get(position);
 
-
-        Album album = albumList.get(position);
-        holder.albumName.setText(album.getName());
-        holder.artistName.setText(album.getArtist());
+        holder.title.setText(item.getTitle());
+        holder.subtitle.setText(item.getSubtitle());
 
         Glide.with(context)
-            .load(album.getImageUrl())
+            .load(item.getImageUrl())
             .placeholder(R.drawable.img_album)
-            .into(holder.albumImage);
+            .into(holder.image);
 
         holder.itemView.setOnClickListener(v -> {
-            if (album.getId() != null && album.getName() != null && album.getArtist() != null) {
-                Intent intent = new Intent(context, DetailAlbumActivity.class);
-                intent.putExtra("albumId", album.getId());
-                intent.putExtra("albumName", album.getName());
-                intent.putExtra("albumArtist", album.getArtist());
-                intent.putExtra("albumImage", album.getImageUrl());
-                intent.putStringArrayListExtra("songs", new ArrayList<>(album.getSongs() != null ? album.getSongs() : new ArrayList<>()));
-
-                // Log para depurar
-                android.util.Log.d("LibraryAdapter", "Datos enviados: " + intent.getExtras());
-
-                context.startActivity(intent);
-            } else {
-                android.util.Log.e("LibraryAdapter", "Datos del álbum incompletos: " + album);
+            switch (item.getType()) {
+                case "album":
+                    openAlbumDetail(item);
+                    break;
+                case "song":
+                    playSong(item);
+                    break;
+                case "playlist":
+                    openPlaylist(item);
+                    break;
+                default:
+                    android.util.Log.e("LibraryAdapter", "Unknown item type: " + item.getType());
             }
         });
     }
 
     @Override
     public int getItemCount() {
-        return albumList.size();
+        return libraryItems.size();
+    }
+
+    private void openAlbumDetail(LibraryItem item) {
+        Intent intent = new Intent(context, DetailAlbumActivity.class);
+        intent.putExtra("albumId", item.getId());
+        intent.putExtra("albumName", item.getTitle());
+        intent.putExtra("albumImage", item.getImageUrl());
+        context.startActivity(intent);
+    }
+
+    private void playSong(LibraryItem item) {
+        // Lógica para reproducir la canción
+        android.util.Log.d("LibraryAdapter", "Playing song: " + item.getTitle());
+    }
+
+    private void openPlaylist(LibraryItem item) {
+        // Lógica para abrir la playlist
+        android.util.Log.d("LibraryAdapter", "Opening playlist: " + item.getTitle());
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        ImageView albumImage;
-        TextView albumName, artistName;
+        ImageView image;
+        TextView title, subtitle;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            albumImage = itemView.findViewById(R.id.albumImage);
-            albumName = itemView.findViewById(R.id.albumName);
-            artistName = itemView.findViewById(R.id.artistName);
+            image = itemView.findViewById(R.id.albumImage);
+            title = itemView.findViewById(R.id.albumName);
+            subtitle = itemView.findViewById(R.id.artistName);
         }
     }
 }

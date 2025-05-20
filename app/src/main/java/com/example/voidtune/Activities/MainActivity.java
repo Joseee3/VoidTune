@@ -1,361 +1,338 @@
 package com.example.voidtune.Activities;
 
-import android.content.Intent;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.MenuItem;
+    import android.content.Intent;
+    import android.os.Bundle;
+    import android.util.Log;
+    import android.view.MenuItem;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+    import androidx.annotation.NonNull;
+    import androidx.appcompat.app.AppCompatActivity;
+    import androidx.recyclerview.widget.GridLayoutManager;
+    import androidx.recyclerview.widget.LinearLayoutManager;
+    import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.voidtune.entities.Song;
-import com.example.voidtune.R;
-import com.example.voidtune.adapter.CategoryAdapter;
-import com.example.voidtune.adapter.HomeListAdapter;
-import com.example.voidtune.adapter.LibraryListAdapter;
-import com.example.voidtune.API.ApiClient;
-import com.example.voidtune.API.ApiService;
-import com.example.voidtune.entities.Album;
-import com.example.voidtune.entities.LibraryItem;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.firebase.analytics.FirebaseAnalytics;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
+    import com.example.voidtune.adapter.LibraryAdapter;
+    import com.example.voidtune.adapter.PlaylistAdapter;
+    import com.example.voidtune.entities.Song;
+    import com.example.voidtune.R;
+    import com.example.voidtune.adapter.CategoryAdapter;
+    import com.example.voidtune.adapter.HomeListAdapter;
+    import com.example.voidtune.adapter.LibraryListAdapter;
+    import com.example.voidtune.API.ApiClient;
+    import com.example.voidtune.API.ApiService;
+    import com.example.voidtune.entities.Album;
+    import com.example.voidtune.entities.LibraryItem;
+    import com.google.android.material.bottomnavigation.BottomNavigationView;
+    import com.google.firebase.analytics.FirebaseAnalytics;
+    import com.google.firebase.auth.FirebaseAuth;
+    import com.google.firebase.auth.FirebaseUser;
+    import com.google.firebase.database.DataSnapshot;
+    import com.google.firebase.database.DatabaseReference;
+    import com.google.firebase.database.FirebaseDatabase;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+    import java.util.ArrayList;
+    import java.util.Arrays;
+    import java.util.List;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+    import retrofit2.Call;
+    import retrofit2.Callback;
+    import retrofit2.Response;
 
-public class MainActivity extends AppCompatActivity {
+    public class MainActivity extends AppCompatActivity {
 
-    private DatabaseReference databaseReference;
+        private DatabaseReference databaseReference;
 
-    private FirebaseAnalytics mFirebaseAnalytics;
-    private List<Album> albumItems = new ArrayList<>();
-    private LibraryListAdapter libraryAdapter;
-    private HomeListAdapter suggestionsAdapter;
-    private HomeListAdapter mostPlayedAdapter;
-    private HomeListAdapter recentMusicAdapter;
-    private HomeListAdapter moreOfWhatYouLikeAdapter;
-    private HomeListAdapter madeForYouAdapter;
+        private PlaylistAdapter playlistAdapter;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_home);
+        private FirebaseAnalytics mFirebaseAnalytics;
+        private List<Album> albumItems = new ArrayList<>();
+        private LibraryListAdapter libraryAdapter;
+        private HomeListAdapter suggestionsAdapter;
+        private HomeListAdapter mostPlayedAdapter;
+        private HomeListAdapter recentMusicAdapter;
+        private HomeListAdapter moreOfWhatYouLikeAdapter;
+        private HomeListAdapter madeForYouAdapter;
 
+        @Override
+        protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            setContentView(R.layout.activity_home);
 
+            // Configuración del RecyclerView para las categorías (horizontal)
+            RecyclerView categoryRecyclerView = findViewById(R.id.carouselRecyclerView);
+            categoryRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
 
-        // Configuración del RecyclerView para las categorías (horizontal)
-        RecyclerView categoryRecyclerView = findViewById(R.id.carouselRecyclerView);
-        categoryRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+            List<String> categories = Arrays.asList("Música", "Podcasts", "Audiolibros", "Noticias", "Deportes");
+            CategoryAdapter categoryAdapter = new CategoryAdapter(this, categories);
+            categoryRecyclerView.setAdapter(categoryAdapter);
 
-        List<String> categories = Arrays.asList("Música", "Podcasts", "Audiolibros", "Noticias", "Deportes");
-        CategoryAdapter categoryAdapter = new CategoryAdapter(this, categories);
-        categoryRecyclerView.setAdapter(categoryAdapter);
+            databaseReference = FirebaseDatabase.getInstance().getReference();
 
-        // Configuración del RecyclerView para las bibliotecas (cuadrícula de 2 columnas)
-        RecyclerView libraryRecyclerView = findViewById(R.id.libraryRecyclerView);
-        libraryRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+            //Abrir Library
+            BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
 
-        // Inicializar con datos temporales
-        libraryAdapter = new LibraryListAdapter(this, albumItems);
-        libraryRecyclerView.setAdapter(libraryAdapter);
-
-
-        databaseReference = FirebaseDatabase.getInstance().getReference();
-
-
-
-        //Abrir Library
-        BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
-
-        bottomNavigationView.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
-            @Override
-            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                int itemId = item.getItemId();
-                if (itemId == R.id.menu_home) {
-                    startActivity(new Intent(MainActivity.this, MainActivity.class));
-                    return true;
-                } else if (itemId == R.id.menu_search) {
-                    // Acción para el menú Search
-                    return true;
-                } else if (itemId == R.id.menu_library) {
-                    startActivity(new Intent(MainActivity.this, LibraryActivity.class));
-                    return true;
+            bottomNavigationView.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
+                @Override
+                public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                    int itemId = item.getItemId();
+                    if (itemId == R.id.menu_home) {
+                        startActivity(new Intent(MainActivity.this, MainActivity.class));
+                        return true;
+                    } else if (itemId == R.id.menu_search) {
+                        // Acción para el menú Search
+                        return true;
+                    } else if (itemId == R.id.menu_library) {
+                        startActivity(new Intent(MainActivity.this, LibraryActivity.class));
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
-            }
-        });
+            });
 
+            // Configuración de los otros RecyclerView con item_home.xml
+            inicializarRecyclerViews();
 
-        // Configuración de los otros RecyclerView con item_home.xml
-        inicializarRecyclerViews();
+            // Cargar datos de Firebase
+            cargarListasDinamicas();
 
-        // Cargar datos de la API
-        //obtenerAlbumesDeLaApi();
-        // Cargar datos de Firebase
-        obtenerAlbumesDesdeFirebase();
-    }
+            cargarLibraryItemsDesdeFirebase();
 
-    private void inicializarRecyclerViews() {
-        // Configuración para Suggestions
-        RecyclerView suggestionsRecyclerView = findViewById(R.id.suggestionsRecyclerView);
-        suggestionsRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        suggestionsAdapter = new HomeListAdapter(this, new ArrayList<>());
-        suggestionsAdapter.setOnItemClickListener(album -> {
-            cargarAlbumYAbrirDetalle(album.getId());
-        });
-        suggestionsRecyclerView.setAdapter(suggestionsAdapter);
+        }
 
-        // Configuración para Most Played
-        RecyclerView mostPlayedRecyclerView = findViewById(R.id.mostPlayedRecyclerView);
-        mostPlayedRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        mostPlayedAdapter = new HomeListAdapter(this, new ArrayList<>());
-        mostPlayedAdapter.setOnItemClickListener(album -> {
-            cargarAlbumYAbrirDetalle(album.getId());
-        });
-        mostPlayedRecyclerView.setAdapter(mostPlayedAdapter);
+       private void inicializarRecyclerViews() {
+           suggestionsAdapter = configurarRecyclerViewDinamico(R.id.suggestionsRecyclerView);
+           mostPlayedAdapter = configurarRecyclerViewDinamico(R.id.mostPlayedRecyclerView);
+           recentMusicAdapter = configurarRecyclerViewDinamico(R.id.recentMusicRecyclerView);
+           moreOfWhatYouLikeAdapter = configurarRecyclerViewDinamico(R.id.moreOfWhatYouLikeRecyclerView);
+           madeForYouAdapter = configurarRecyclerViewDinamico(R.id.madeForYouRecyclerView);
+       }
 
-        // Configuración para Recent Music
-        RecyclerView recentMusicRecyclerView = findViewById(R.id.recentMusicRecyclerView);
-        recentMusicRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        recentMusicAdapter = new HomeListAdapter(this, new ArrayList<>());
-        recentMusicAdapter.setOnItemClickListener(album -> {
-            cargarAlbumYAbrirDetalle(album.getId());
-        });
-        recentMusicRecyclerView.setAdapter(recentMusicAdapter);
+       private HomeListAdapter configurarRecyclerViewDinamico(int recyclerViewId) {
+           RecyclerView recyclerView = findViewById(recyclerViewId);
+           recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+           HomeListAdapter adapter = new HomeListAdapter(this, new ArrayList<>());
+           adapter.setOnItemClickListener(album -> cargarAlbumYAbrirDetalle(album.getId()));
+           recyclerView.setAdapter(adapter);
+           return adapter;
+       }
 
-        // Configuración para More of What You Like
-        RecyclerView moreOfWhatYouLikeRecyclerView = findViewById(R.id.moreOfWhatYouLikeRecyclerView);
-        moreOfWhatYouLikeRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        moreOfWhatYouLikeAdapter = new HomeListAdapter(this, new ArrayList<>());
-        moreOfWhatYouLikeAdapter.setOnItemClickListener(album -> {
-            cargarAlbumYAbrirDetalle(album.getId());
-        });
-        moreOfWhatYouLikeRecyclerView.setAdapter(moreOfWhatYouLikeAdapter);
+        private void configurarRecyclerViewDinamico(int recyclerViewId, HomeListAdapter adapter) {
+            RecyclerView recyclerView = findViewById(recyclerViewId);
+            recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+            adapter = new HomeListAdapter(this, new ArrayList<>());
+            adapter.setOnItemClickListener(album -> cargarAlbumYAbrirDetalle(album.getId()));
+            recyclerView.setAdapter(adapter);
+        }
 
-        // Configuración para Made for You
-        RecyclerView madeForYouRecyclerView = findViewById(R.id.madeForYouRecyclerView);
-        madeForYouRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        madeForYouAdapter = new HomeListAdapter(this, new ArrayList<>());
-        madeForYouAdapter.setOnItemClickListener(album -> {
-            cargarAlbumYAbrirDetalle(album.getId());
-        });
-        madeForYouRecyclerView.setAdapter(madeForYouAdapter);
-    }
+        private void cargarListasDinamicas() {
+            cargarListaDinamica("suggestion", suggestionsAdapter);
+            cargarListaDinamica("mostplayed", mostPlayedAdapter);
+            cargarListaDinamica("recentmusic", recentMusicAdapter);
+            cargarListaDinamica("moreofwhatyoulike", moreOfWhatYouLikeAdapter);
+            cargarListaDinamica("madeforyou", madeForYouAdapter);
+        }
 
-    private void cargarAlbumYAbrirDetalle(String albumId) {
-        ApiService apiService = ApiClient.getClient().create(ApiService.class);
-        Call<Album> call = apiService.getAlbumById(albumId);
+        private void cargarListaDinamica(String listaNombre, HomeListAdapter adapter) {
+            databaseReference.child(listaNombre).get().addOnCompleteListener(task -> {
+                if (task.isSuccessful() && task.getResult() != null) {
+                    List<String> albumIds = new ArrayList<>();
+                    for (DataSnapshot snapshot : task.getResult().getChildren()) {
+                        String albumId = snapshot.getValue(String.class); // Leer el valor como String
+                        if (albumId != null && !albumId.isEmpty()) {
+                            albumIds.add(albumId);
+                            Log.d("Firebase", "Album ID recuperado: " + albumId); // Log para depuración
+                        } else {
+                            Log.e("Firebase", "Album ID nulo o vacío en la lista " + listaNombre);
+                        }
+                    }
 
-        call.enqueue(new Callback<Album>() {
-            @Override
-            public void onResponse(Call<Album> call, Response<Album> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    Album album = response.body();
-                    abrirDetalle(album); // Llama a abrirDetalle con el álbum completo
+                    // Cargar detalles de los álbumes
+                    cargarDetallesDeAlbumes(albumIds, adapter);
                 } else {
-                    Log.e("API", "Error al cargar álbum: " + response.code());
+                    Log.e("Firebase", "Error al cargar la lista " + listaNombre + ": " + task.getException().getMessage());
                 }
-            }
-
-            @Override
-            public void onFailure(Call<Album> call, Throwable t) {
-                Log.e("API", "Fallo al obtener álbum: " + t.getMessage());
-            }
-        });
-    }
-
-    private void obtenerAlbumesDeLaApi() {
-        ApiService apiService = ApiClient.getClient().create(ApiService.class);
-        Call<List<Album>> call = apiService.getAlbums();
-
-        call.enqueue(new Callback<List<Album>>() {
-            @Override
-            public void onResponse(Call<List<Album>> call, Response<List<Album>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    List<Album> albums = response.body();
-                    actualizarUIConAlbumes(albums);
-                    Log.d("API", "Se cargaron con éxito " + albums.size() + " álbumes");
-                } else {
-                    Log.e("API", "Error en la respuesta de la API: " + response.code());
-                    cargarDatosPorDefecto();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<List<Album>> call, Throwable t) {
-                Log.e("API", "La llamada a la API falló: " + t.getMessage());
-                cargarDatosPorDefecto();
-            }
-        });
-    }
-
-    private void actualizarAdaptador(HomeListAdapter adapter, List<Album> albums) {
-        RecyclerView parent = null;
-
-        if (adapter == suggestionsAdapter) {
-            parent = findViewById(R.id.suggestionsRecyclerView);
-        } else if (adapter == mostPlayedAdapter) {
-            parent = findViewById(R.id.mostPlayedRecyclerView);
-        } else if (adapter == recentMusicAdapter) {
-            parent = findViewById(R.id.recentMusicRecyclerView);
-        } else if (adapter == moreOfWhatYouLikeAdapter) {
-            parent = findViewById(R.id.moreOfWhatYouLikeRecyclerView);
-        } else if (adapter == madeForYouAdapter) {
-            parent = findViewById(R.id.madeForYouRecyclerView);
+            });
         }
 
-        if (parent != null) {
-            HomeListAdapter newAdapter = new HomeListAdapter(this, albums);
-            newAdapter.setOnItemClickListener(album -> abrirDetalle(album));
-            parent.setAdapter(newAdapter);
+        private void cargarDetallesDeAlbumes(List<String> albumIds, HomeListAdapter adapter) {
+            List<Album> albums = new ArrayList<>();
+            for (String albumId : albumIds) {
+                databaseReference.child("albums").child(albumId).get().addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        Album album = task.getResult().getValue(Album.class);
+                        if (album != null) {
+                            album.setId(albumId); // Asignar manualmente el ID
+                            album.setImageUrl(task.getResult().child("imageURL").getValue(String.class)); // Asignar la URL de la imagen
+                            albums.add(album);
+                        } else {
+                            Log.e("Firebase", "El álbum con ID " + albumId + " no existe en la base de datos");
+                        }
 
-            if (adapter == suggestionsAdapter) {
-                suggestionsAdapter = newAdapter;
-            } else if (adapter == mostPlayedAdapter) {
-                mostPlayedAdapter = newAdapter;
-            } else if (adapter == recentMusicAdapter) {
-                recentMusicAdapter = newAdapter;
-            } else if (adapter == moreOfWhatYouLikeAdapter) {
-                moreOfWhatYouLikeAdapter = newAdapter;
-            } else if (adapter == madeForYouAdapter) {
-                madeForYouAdapter = newAdapter;
+                        // Actualizar el adaptador cuando se hayan cargado todos los álbumes
+                        if (albums.size() == albumIds.size()) {
+                            adapter.updateData(albums);
+                        }
+                    } else {
+                        Log.e("Firebase", "Error al cargar detalles del álbum con ID " + albumId + ": " + task.getException().getMessage());
+                    }
+                });
             }
         }
-    }
-
-    private void cargarDatosPorDefecto() {
-        List<Album> defaultAlbums = new ArrayList<>();
-        List<LibraryItem> placeholders = Arrays.asList(
-            new LibraryItem(R.drawable.foto_carousel, "Biblioteca 1"),
-            new LibraryItem(R.drawable.foto_carousel, "Biblioteca 2"),
-            new LibraryItem(R.drawable.foto_carousel, "Biblioteca 3"),
-            new LibraryItem(R.drawable.foto_carousel, "Biblioteca 4")
-        );
-
-        for (LibraryItem item : placeholders) {
-            defaultAlbums.add(new Album("", item.getTitle(), "Artista Desconocido", item.getImageUrl(), new ArrayList<>()));
-        }
-
-        configurarRecyclerView(R.id.suggestionsRecyclerView, defaultAlbums);
-        configurarRecyclerView(R.id.mostPlayedRecyclerView, defaultAlbums);
-        configurarRecyclerView(R.id.recentMusicRecyclerView, defaultAlbums);
-        configurarRecyclerView(R.id.moreOfWhatYouLikeRecyclerView, defaultAlbums);
-        configurarRecyclerView(R.id.madeForYouRecyclerView, defaultAlbums);
-    }
-
-
-
-
-private void configurarRecyclerView(int recyclerViewId, List<Album> albums) {
-    RecyclerView recyclerView = findViewById(recyclerViewId);
-    recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-    HomeListAdapter adapter = new HomeListAdapter(this, albums);
-    adapter.setOnItemClickListener(album -> abrirDetalle(album));
-    recyclerView.setAdapter(adapter);
-}
-
-
-   private void actualizarUIConAlbumes(List<Album> albums) {
-        // Limpiar elementos existentes
-        albumItems.clear();
-
-        // Convertir álbumes a LibraryItems
-        List<LibraryItem> libraryItems = new ArrayList<>();
-        List<LibraryItem> homeItems = new ArrayList<>();
-
-        for (Album album : albums) {
-            LibraryItem item = new LibraryItem(album.getImageUrl(), album.getName(), album.getArtist());
-
-            // Añadir algunos álbumes a la cuadrícula de biblioteca
-            if (libraryItems.size() < 4) {
-                libraryItems.add(item);
+        private void cargarAlbumYAbrirDetalle(String albumId) {
+            if (albumId == null || albumId.isEmpty()) {
+                Log.e("Firebase", "El albumId es nulo o está vacío");
+                return;
             }
 
-            // Añadir todos los álbumes a los elementos de inicio
-            homeItems.add(item);
-        }
+            Log.d("Firebase", "Cargando detalles del álbum con ID: " + albumId);
 
-        // Actualizar cuadrícula de biblioteca
-        albumItems.addAll(albums); // Usar directamente la lista de álbumes
-        libraryAdapter.setOnItemClickListener(new LibraryListAdapter.OnItemClickListener() {
-            @Override
-            public void onItemClick(Album album) {
-                abrirDetalle(album);
-            }
-        });
-        libraryAdapter.notifyDataSetChanged();
-
-
-
-        // Actualizar todas las listas horizontales con diferentes subconjuntos de datos
-        actualizarAdaptador(suggestionsAdapter, albums);
-        actualizarAdaptador(mostPlayedAdapter, albums);
-        actualizarAdaptador(recentMusicAdapter, albums);
-        actualizarAdaptador(moreOfWhatYouLikeAdapter, albums);
-        actualizarAdaptador(madeForYouAdapter, albums);
-    }
-
-    private void abrirDetalle(Album album) {
-        Intent intent = new Intent(MainActivity.this, DetailAlbumActivity.class);
-        intent.putExtra("albumId", album.getId()); // Pasar el ID del álbum
-        intent.putExtra("albumName", album.getName());
-        intent.putExtra("albumImage", album.getImageUrl());
-        intent.putStringArrayListExtra("songs", new ArrayList<>(album.getSongs())); // Pasar lista de IDs de canciones
-        startActivity(intent);
-    }
-
-
-
-    //FIREBASE
-
-
-    private void obtenerAlbumesDesdeFirebase() {
-        databaseReference.child("albums").get().addOnCompleteListener(task -> {
-            if (task.isSuccessful() && task.getResult() != null) {
-                List<Album> albums = new ArrayList<>();
-                for (DataSnapshot snapshot : task.getResult().getChildren()) {
-                    String albumId = snapshot.getKey();
-                    String name = snapshot.child("name").getValue(String.class);
-                    String artist = snapshot.child("artist").getValue(String.class);
-                    String imageUrl = snapshot.child("imageURL").getValue(String.class);
+            // Cargar detalles del álbum desde Firebase
+            databaseReference.child("albums").child(albumId).get().addOnCompleteListener(task -> {
+                if (task.isSuccessful() && task.getResult() != null) {
+                    DataSnapshot albumSnapshot = task.getResult();
+                    String albumName = albumSnapshot.child("name").getValue(String.class);
+                    String albumImage = albumSnapshot.child("imageURL").getValue(String.class);
                     List<String> songs = new ArrayList<>();
-                    for (DataSnapshot songSnapshot : snapshot.child("songs").getChildren()) {
+                    for (DataSnapshot songSnapshot : albumSnapshot.child("songs").getChildren()) {
                         songs.add(songSnapshot.getValue(String.class));
                     }
 
-                    Album album = new Album(albumId, name, artist, imageUrl, songs);
-                    albums.add(album);
+                    // Crear un Intent para abrir DetailAlbumActivity
+                    Intent intent = new Intent(MainActivity.this, DetailAlbumActivity.class);
+                    intent.putExtra("albumId", albumId);
+                    intent.putExtra("albumName", albumName);
+                    intent.putExtra("albumImage", albumImage);
+                    intent.putStringArrayListExtra("songs", new ArrayList<>(songs));
+                    startActivity(intent);
+                } else {
+                    Log.e("Firebase", "Error al cargar detalles del álbum: " + task.getException().getMessage());
                 }
-                actualizarUIConAlbumes(albums);
-            } else {
-                Log.e("Firebase", "Error al obtener álbumes: " + task.getException().getMessage());
+            });
+        }
+
+//        private void cargarAlbumYAbrirDetalle(String albumId) {
+//            if (albumId == null || albumId.isEmpty()) {
+//                Log.e("Firebase", "El albumId es nulo o está vacío");
+//                return;
+//            }
+//
+//            Log.d("Firebase", "Cargando detalles del álbum con ID: " + albumId);
+//
+//            // Cargar detalles del álbum desde Firebase
+//            databaseReference.child("albums").child(albumId).get().addOnCompleteListener(task -> {
+//                if (task.isSuccessful() && task.getResult() != null) {
+//                    DataSnapshot albumSnapshot = task.getResult();
+//                    String albumName = albumSnapshot.child("name").getValue(String.class);
+//                    String albumImage = albumSnapshot.child("imageURL").getValue(String.class);
+//                    List<Song> songs = new ArrayList<>();
+//
+//                    // Recuperar los IDs de las canciones
+//                    for (DataSnapshot songSnapshot : albumSnapshot.child("songs").getChildren()) {
+//                        String songId = songSnapshot.getValue(String.class);
+//                        if (songId != null && !songId.isEmpty()) {
+//                            // Recuperar detalles de la canción desde el nodo "songs"
+//                            databaseReference.child("songs").child(songId).get().addOnCompleteListener(songTask -> {
+//                                if (songTask.isSuccessful() && songTask.getResult() != null) {
+//                                    DataSnapshot songDetails = songTask.getResult();
+//                                    String songName = songDetails.child("name").getValue(String.class);
+//                                    String songArtist = songDetails.child("artist").getValue(String.class);
+//                                    String songAudioURL = songDetails.child("audioURL").getValue(String.class);
+//                                    String songDuration = songDetails.child("duration").getValue(String.class);
+//
+//                                    // Crear un objeto Song y agregarlo a la lista
+//                                    songs.add(new Song(songId, songName, songArtist, songAudioURL, songDuration));
+//
+//                                    // Si se han cargado todas las canciones, abrir la actividad
+//                                    if (songs.size() == albumSnapshot.child("songs").getChildrenCount()) {
+//                                        abrirDetalleAlbum(albumId, albumName, albumImage, songs);
+//                                    }
+//                                } else {
+//                                    Log.e("Firebase", "Error al cargar detalles de la canción: " + songTask.getException().getMessage());
+//                                }
+//                            });
+//                        } else {
+//                            Log.e("Firebase", "ID de canción nulo o vacío en el álbum " + albumId);
+//                        }
+//                    }
+//                } else {
+//                    Log.e("Firebase", "Error al cargar detalles del álbum: " + task.getException().getMessage());
+//                }
+//            });
+//        }
+//
+//        private void abrirDetalleAlbum(String albumId, String albumName, String albumImage, List<Song> songs) {
+//            Intent intent = new Intent(MainActivity.this, DetailAlbumActivity.class);
+//            intent.putExtra("albumId", albumId);
+//            intent.putExtra("albumName", albumName);
+//            intent.putExtra("albumImage", albumImage);
+//            intent.putParcelableArrayListExtra("songs", new ArrayList<>(songs));
+//            startActivity(intent);
+//        }
+        private void abrirDetalle(Album album) {
+            Intent intent = new Intent(MainActivity.this, DetailAlbumActivity.class);
+            intent.putExtra("albumId", album.getId());
+            intent.putExtra("albumName", album.getName());
+            intent.putExtra("albumImage", album.getImageUrl()); // Pasar la URL de la imagen
+            intent.putStringArrayListExtra("songs", new ArrayList<>(album.getSongs()));
+            startActivity(intent);
+        }
+
+        private void cargarLibraryItemsDesdeFirebase() {
+            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+            if (currentUser == null) {
+                Log.e("Firebase", "El usuario no está autenticado.");
+                return;
             }
-        });
-    }
 
-    private void cargarAlbumYAbrirDetalleFirebase(String albumId) {
-        databaseReference.child("albums").child(albumId).get().addOnCompleteListener(task -> {
-            if (task.isSuccessful() && task.getResult() != null) {
-                Album album = task.getResult().getValue(Album.class);
-                if (album != null) {
-                    abrirDetalle(album);
-                }
-            } else {
-                Log.e("Firebase", "Error al cargar álbum: " + task.getException().getMessage());
+            String userId = currentUser.getUid();
+            Log.d("Firebase", "ID del usuario autenticado: " + userId);
+
+            DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
+
+            // Initialize the list
+            List<LibraryItem> libraryItems = new ArrayList<>();
+
+            // Bind libraryRecyclerView
+            RecyclerView libraryRecyclerView = findViewById(R.id.libraryRecyclerView);
+            if (libraryRecyclerView == null) {
+                Log.e("Error", "libraryRecyclerView no está definido en el diseño.");
+                return;
             }
-        });
+            libraryRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+         userRef.child("playlists").get().addOnCompleteListener(task -> {
+             if (task.isSuccessful() && task.getResult() != null) {
+                 for (DataSnapshot playlistSnapshot : task.getResult().getChildren()) {
+                     String playlistId = playlistSnapshot.getKey();
+                     String name = playlistSnapshot.child("name").getValue(String.class);
+                     String imageUrl = playlistSnapshot.child("imageURL").getValue(String.class);
+
+                     if (imageUrl == null || imageUrl.isEmpty()) {
+                         imageUrl = "url_to_default_playlist_image";
+                     }
+
+                     libraryItems.add(new LibraryItem(playlistId, name, imageUrl, "playlist"));
+                 }
+
+                 // Actualizar adaptador
+                 PlaylistAdapter playlistAdapter = new PlaylistAdapter(this, libraryItems);
+                 libraryRecyclerView.setLayoutManager(new GridLayoutManager(this, 2)); // 2 columnas
+                 libraryRecyclerView.setAdapter(playlistAdapter);
+
+                 playlistAdapter.setOnItemClickListener(item -> {
+                     Intent intent = new Intent(this, DetailPlaylistActivity.class);
+                     intent.putExtra("playlistId", item.getId());
+                     intent.putExtra("playlistName", item.getTitle());
+                     intent.putExtra("playlistImage", item.getImageUrl());
+                     intent.putExtra("type", "playlist");
+                     startActivity(intent);
+                 });
+
+                 playlistAdapter.notifyDataSetChanged();
+             } else {
+                 Log.e("Firebase", "Error al cargar playlists: " + task.getException());
+             }
+         });
+
+        }
     }
-
-
-}

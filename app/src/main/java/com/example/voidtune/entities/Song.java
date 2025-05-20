@@ -1,20 +1,29 @@
 package com.example.voidtune.entities;
 
-import java.io.Serializable;
+        import android.os.Parcel;
+import android.os.Parcelable;
 
-public class Song implements Serializable {
+public class Song  {
     private String name;
     private String artist;
     private String duracion;
     private String genero;
     private String id;
+    private String audioURL;
     private String albumId;
+
     // Constructor vacío requerido por Firebase
     public Song() {
-        // Constructor vacío requerido por Firebase
     }
 
-    // Constructor
+    public Song(String id, String name, String artist, String audioURL, String duration) {
+        this.id = id;
+        this.name = name;
+        this.artist = artist;
+        this.audioURL = audioURL;
+        this.duracion = duration;
+    }
+
     public Song(String name, String artist, String duracion, String genero, String id, String albumId) {
         this.name = name;
         this.artist = artist;
@@ -24,8 +33,17 @@ public class Song implements Serializable {
         this.albumId = albumId;
     }
 
-    // Getters y setters
+    public Song(String id, String name, String artist) {
+        this.id = id;
+        this.name = name;
+        this.artist = artist;
+    }
 
+    public Song(String id) {
+        this.id = id;
+    }
+
+    // Getters and setters
     public String getName() {
         return name;
     }
@@ -73,4 +91,5 @@ public class Song implements Serializable {
     public void setAlbumId(String albumId) {
         this.albumId = albumId;
     }
+
 }
