@@ -122,33 +122,19 @@ public class LibraryActivity extends AppCompatActivity {
 
         Button addPlaylistButton = findViewById(R.id.add_playlists_button);
         addPlaylistButton.setOnClickListener(v -> showCreatePlaylistDialog());
+
+
+        ImageView addIcon = findViewById(R.id.add_icon);
+        addIcon.setOnClickListener(v -> showCreatePlaylistDialog());
+
+
+        Button likeSongButton = findViewById(R.id.likeSongButton);
+        likeSongButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, DetailPlaylistActivity.class);
+            intent.putExtra("type", "likeSong");
+            startActivity(intent);
+        });
     }
-//    private void cargarDatosDesdeAPI() {
-//        ApiService apiService = ApiClient.getClient().create(ApiService.class);
-//        Call<List<Album>> call = apiService.getAlbums();
-//
-//        call.enqueue(new Callback<List<Album>>() {
-//            @Override
-//            public void onResponse(Call<List<Album>> call, Response<List<Album>> response) {
-//                if (response.isSuccessful() && response.body() != null) {
-//                    List<Album> albums = response.body();
-//                    albumItems.clear();
-//                    albumItems.addAll(albums);
-//                    libraryAdapter.notifyDataSetChanged();
-//                    Log.d("API", "Se cargaron con éxito " + albums.size() + " álbumes");
-//                } else {
-//                    Log.e("API", "Error en la respuesta de la API: " + response.code());
-//                    Toast.makeText(LibraryActivity.this, "Error al cargar datos", Toast.LENGTH_SHORT).show();
-//                }
-//            }
-//
-//            @Override
-//            public void onFailure(Call<List<Album>> call, Throwable t) {
-//                Log.e("API", "La llamada a la API falló: " + t.getMessage());
-//                Toast.makeText(LibraryActivity.this, "Error al cargar datos", Toast.LENGTH_SHORT).show();
-//            }
-//        });
-//    }
 
 
   private void cargarLibraryItemsDesdeFirebase() {
