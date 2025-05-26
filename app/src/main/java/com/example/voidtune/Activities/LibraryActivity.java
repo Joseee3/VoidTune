@@ -2,6 +2,7 @@ package com.example.voidtune.Activities;
 
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -9,10 +10,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -27,6 +30,7 @@ import com.example.voidtune.adapter.LibraryAdapter;
 import com.example.voidtune.entities.LibraryItem;
 import com.example.voidtune.entities.Song;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -50,10 +54,59 @@ public class LibraryActivity extends AppCompatActivity {
 
     private DatabaseReference databaseReference;
 
+    private DrawerLayout drawerLayout;
+
+    private ProgressBar progressBar;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_library);
+
+        ProgressBar progressBar = findViewById(R.id.progressBar);
+
+        //Configurar el DrawerLayout
+        drawerLayout = findViewById(R.id.drawer_layout);
+        NavigationView navigationView = findViewById(R.id.navigation_view);
+
+        // Manejar el clic en el botón de navegación
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.menu_settings) {
+                // Abrir actividad de configuración
+                startActivity(new Intent(this, SettingsActivity.class));
+                return true;
+            } else if (id == R.id.menu_logout) {
+                progressBar.setVisibility(View.VISIBLE); // Mostrar el ProgressBar
+
+                FirebaseAuth.getInstance().signOut();
+
+                // Limpiar SharedPreferences
+                SharedPreferences sharedPreferences = getSharedPreferences("UserSession", MODE_PRIVATE);
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.clear();
+                editor.apply();
+
+                // Redirigir al inicio de sesión y limpiar la pila de actividades
+                Intent intent = new Intent(this, Login.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                progressBar.setVisibility(View.GONE); // Ocultar el ProgressBar
+                startActivity(intent);
+                finish();
+                return true;
+            }
+            return false;
+        });
+
+        //Agregar el botón de navegación al DrawerLayout
+        ImageView navigationButton = findViewById(R.id.userImage);
+        navigationButton.setOnClickListener(v -> {
+            if (drawerLayout.isDrawerOpen(navigationView)) {
+                drawerLayout.closeDrawer(navigationView);
+            } else {
+                drawerLayout.openDrawer(navigationView);
+            }
+        });
 
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
@@ -100,22 +153,6 @@ public class LibraryActivity extends AppCompatActivity {
         // Configurar RecyclerView
         albumsRecyclerView = findViewById(R.id.albumsRecyclerView);
         albumsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-        // Inicializar lista y adaptador
-//        albumItems = new ArrayList<>(); // Inicializa la lista
-//        List<LibraryItem> libraryItems = new ArrayList<>();
-//        for (Album album : albumItems) {
-//            libraryItems.add(new LibraryItem(
-//                album.getId(),
-//                album.getName(),
-//                album.getArtist(),
-//                album.getImageUrl(),
-//                "album"
-//            ));
-//        }
-
-//        libraryAdapter = new LibraryAdapter(this, libraryItems);
-//        albumsRecyclerView.setAdapter(libraryAdapter);
 
         // Cargar datos
         cargarLibraryItemsDesdeFirebase();

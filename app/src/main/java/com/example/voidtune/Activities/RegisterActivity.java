@@ -9,9 +9,11 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -169,6 +171,9 @@ public class RegisterActivity extends AppCompatActivity {
            return;
        }
 
+       ProgressBar progressBar = findViewById(R.id.progressBar);
+       progressBar.setVisibility(View.VISIBLE);
+
        auth.createUserWithEmailAndPassword(email, password)
            .addOnCompleteListener(task -> {
                if (task.isSuccessful()) {
@@ -196,6 +201,7 @@ public class RegisterActivity extends AppCompatActivity {
                            });
                    }
                } else {
+                     progressBar.setVisibility(View.GONE);
                    Log.e("Firebase", "Error registering user", task.getException());
                    Toast.makeText(this, "Error registering user: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                }

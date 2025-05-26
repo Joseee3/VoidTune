@@ -140,19 +140,6 @@
             android:gravity="center"
             android:padding="10dp"/>
 
-        <Button
-            android:id="@+id/registerButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/forgotPassword"
-            android:layout_marginTop="20dp"
-            android:text="Registrarse"
-            android:backgroundTint="#1DB954"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:padding="10dp" />
-
 
         <TextView
             android:id="@+id/forgotPassword"
@@ -164,6 +151,14 @@
             android:text="¿Se te ha olvidado la contraseña?"
             android:textColor="#1DB954"
             android:textSize="16sp" />
+
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
 
     </RelativeLayout>
 </ScrollView>

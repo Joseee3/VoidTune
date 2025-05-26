@@ -49,7 +49,6 @@ public class DetailPlaylistActivity extends AppCompatActivity {
         String playlistId = getIntent().getStringExtra("playlistId");
 
 
-
         songAdapter.setOnDeleteClickListener((song, position) -> {
             removeSongFromPlaylist(playlistId, song, position);
         });
