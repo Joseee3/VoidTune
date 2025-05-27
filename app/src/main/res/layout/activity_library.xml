@@ -179,13 +179,16 @@
     </RelativeLayout>
 
     <!-- Menú lateral -->
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/navigation_view"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_gravity="start"
-        app:menu="@menu/drawer_menu"
-        android:background="#1C1C1E" />
+<com.google.android.material.navigation.NavigationView
+    android:id="@+id/navigation_view"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:layout_gravity="start"
+    app:menu="@menu/drawer_menu"
+    android:background="#1C1C1E"
+    app:itemTextAppearance="@style/MenuTextStyle"
+    app:itemIconTint="@android:color/white"
+    app:itemTextColor="@color/colorPrimary"/>
 
     <ProgressBar
         android:id="@+id/progressBar"

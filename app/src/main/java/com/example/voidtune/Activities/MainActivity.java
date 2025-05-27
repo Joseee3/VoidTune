@@ -4,6 +4,7 @@ package com.example.voidtune.Activities;
     import android.os.Bundle;
     import android.util.Log;
     import android.view.MenuItem;
+    import android.widget.TextView;
 
     import androidx.annotation.NonNull;
     import androidx.appcompat.app.AppCompatActivity;
@@ -32,6 +33,7 @@ package com.example.voidtune.Activities;
 
     import java.util.ArrayList;
     import java.util.Arrays;
+    import java.util.Calendar;
     import java.util.List;
 
     import retrofit2.Call;
@@ -57,6 +59,52 @@ package com.example.voidtune.Activities;
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             setContentView(R.layout.activity_home);
+
+            TextView greetingText = findViewById(R.id.greetingText);
+
+            // Get the current hour
+            Calendar calendar = Calendar.getInstance();
+            int hour = calendar.get(Calendar.HOUR_OF_DAY);
+
+            // Determine the greeting based on the time
+            String greeting;
+            if (hour >= 5 && hour < 12) {
+                greeting = "Good morning";
+            } else if (hour >= 12 && hour < 18) {
+                greeting = "Good afternoon";
+            } else {
+                greeting = "Good evening";
+            }
+
+            // Get the user's name from Firebase Realtime Database
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user != null) {
+                String userId = user.getUid(); // Get the user's UID
+                DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
+
+                StringBuilder greetingBuilder = new StringBuilder(greeting);
+
+                userRef.child("username").get().addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        String userName = task.getResult().getValue(String.class);
+                        if (userName != null && !userName.isEmpty()) {
+                            // Capitalize the first letter
+                            String capitalizedUserName = userName.substring(0, 1).toUpperCase() + userName.substring(1).toLowerCase();
+                            greetingBuilder.append(" ").append(capitalizedUserName); // Append the username
+                            greetingText.setText(greetingBuilder.toString()); // Update the TextView
+                        } else {
+                            Log.e("Firebase", "Username is null or empty.");
+                        }
+                    } else {
+                        Log.e("Firebase", "Failed to fetch username: " + task.getException());
+                    }
+                });
+            } else {
+                Log.e("Firebase", "User is not authenticated.");
+            }
+
+            // Set the greeting text
+            greetingText.setText(greeting);
 
             // Configuración del RecyclerView para las categorías (horizontal)
             RecyclerView categoryRecyclerView = findViewById(R.id.carouselRecyclerView);

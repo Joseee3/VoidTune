@@ -5,6 +5,7 @@
         <item name="colorPrimaryVariant">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="textAppearanceButton">@style/CustomButtonStyle</item>
+        <item name="android:textColorPrimary">#FFFFFF</item> <!-- Color blanco para el texto -->
     </style>
 
     <!-- Estilo personalizado para los botones -->
