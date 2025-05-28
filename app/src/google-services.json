@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "801653441314",
+    "project_id": "voidtune-ada00",
+    "storage_bucket": "voidtune-ada00.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:801653441314:android:525eb80dfd4af03d671b7b",
+        "android_client_info": {
+          "package_name": "com.example.voidtune"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "801653441314-anq9s2p13a2arfbe51upqhr0rrte702m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBoUu_9MCYUQJ8QtTwf79mZmXLY7Aa1KAY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "801653441314-anq9s2p13a2arfbe51upqhr0rrte702m.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
