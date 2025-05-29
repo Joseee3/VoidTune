@@ -66,6 +66,8 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register_user);
 
+        progressBar = findViewById(R.id.progressBar);
+
         // Inicializar vistas
         profileImageView = findViewById(R.id.profileImageView);
         usernameEditText = findViewById(R.id.usernameEditText);
