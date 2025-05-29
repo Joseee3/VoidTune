@@ -12,8 +12,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- Todo el contenido existente aquí -->
-
         <!-- Top bar -->
         <LinearLayout
             android:id="@+id/top_navigation_bar"
@@ -174,24 +172,27 @@
             android:background="#121212"
             app:menu="@menu/bottom_nav_menu"
             app:itemIconTint="@color/colorPrimary"
-            app:itemTextColor="@color/colorPrimary"
-            app:itemRippleColor="@color/colorAccent" />
+            app:itemTextColor="@color/colorPrimary" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:indeterminateTint="#1DB954"
+            android:visibility="gone" />
+
     </RelativeLayout>
 
     <!-- Menú lateral -->
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/navigation_view"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_gravity="start"
-        app:menu="@menu/drawer_menu"
-        android:background="#1C1C1E" />
-
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:visibility="gone" />
+<com.google.android.material.navigation.NavigationView
+    android:id="@+id/navigation_view"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:layout_gravity="start"
+    app:menu="@menu/drawer_menu"
+    android:background="#1C1C1E"
+    app:itemIconTint="@color/colorPrimary"
+    app:itemTextColor="@color/colorPrimary" />
 
 </androidx.drawerlayout.widget.DrawerLayout>

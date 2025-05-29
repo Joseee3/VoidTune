@@ -20,7 +20,7 @@ public class Login extends AppCompatActivity {
 
     private FirebaseAuth mAuth;
     private EditText emailEditText, passwordEditText;
-
+    private Button loginButton, registerButton;
     private ProgressBar progressBar;
 
     @Override
@@ -45,11 +45,11 @@ public class Login extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
 
         // Referencias a los campos de entrada
-        emailEditText = findViewById(R.id.email); // Ajustado al ID correcto
-        passwordEditText = findViewById(R.id.password); // Ajustado al ID correcto
-
-        // Referencia al botón de iniciar sesión
-        Button loginButton = findViewById(R.id.loginButton);
+        emailEditText = findViewById(R.id.email);
+        passwordEditText = findViewById(R.id.password);
+        loginButton = findViewById(R.id.loginButton);
+        registerButton = findViewById(R.id.registerButton);
+        progressBar = findViewById(R.id.progressBar);
 
         // Configurar el evento onClick para iniciar sesión
         loginButton.setOnClickListener(new View.OnClickListener() {
@@ -65,11 +65,25 @@ public class Login extends AppCompatActivity {
                 }
             }
         });
+
+        // Configurar el evento onClick para registrarse
+        registerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Login.this, RegisterActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
     private void iniciarSesion(String email, String password) {
+
+        showLoading(true);
+
         mAuth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener(this, task -> {
+
+                showLoading(false);
                 if (task.isSuccessful()) {
                     // Inicio de sesión exitoso
                     FirebaseUser user = mAuth.getCurrentUser();
@@ -91,5 +105,19 @@ public class Login extends AppCompatActivity {
                     Toast.makeText(Login.this, "Error: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                 }
             });
+    }
+
+    private void showLoading(boolean isLoading) {
+        if (isLoading) {
+            progressBar.setVisibility(View.VISIBLE);
+            loginButton.setEnabled(false);
+            registerButton.setEnabled(false);
+            loginButton.setText("Iniciando sesión...");
+        } else {
+            progressBar.setVisibility(View.GONE);
+            loginButton.setEnabled(true);
+            registerButton.setEnabled(true);
+            loginButton.setText("Iniciar sesión");
+        }
     }
 }

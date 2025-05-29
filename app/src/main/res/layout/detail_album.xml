@@ -7,6 +7,11 @@
     android:background="#121212"
     tools:context=".Activities.DetailAlbumActivity">
 
+    <View
+        android:id="@+id/backgroundView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/black" />
   <LinearLayout
        android:id="@+id/top_navigation_bar"
        android:layout_width="match_parent"
@@ -193,7 +198,6 @@
         android:background="#121212"
         app:menu="@menu/bottom_nav_menu"
         app:itemIconTint="@color/colorPrimary"
-        app:itemTextColor="@color/colorPrimary"
-        app:itemRippleColor="@color/colorAccent" />
+        app:itemTextColor="@color/colorPrimary" />
 
 </RelativeLayout>

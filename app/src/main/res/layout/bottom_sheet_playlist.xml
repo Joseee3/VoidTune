@@ -1,0 +1,35 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#121212">
+
+    <TextView
+        android:id="@+id/editPlaylist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Editar playlist"
+        android:textSize="16sp"
+        android:padding="12dp"
+        android:gravity="center_vertical"
+        android:drawableStart="@drawable/icon_edit"
+        android:drawablePadding="8dp"
+        android:background="?selectableItemBackground"
+        android:textColor="@android:color/white"
+        android:drawableTint="@android:color/white" />
+
+    <TextView
+        android:id="@+id/deletePlaylist"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="Eliminar playlist"
+      android:textSize="16sp"
+      android:padding="12dp"
+      android:gravity="center_vertical"
+      android:drawableStart="@drawable/icon_delete"
+      android:drawablePadding="8dp"
+      android:background="?selectableItemBackground"
+      android:textColor="@android:color/white"
+      android:drawableTint="@android:color/white" />
+ </LinearLayout>

@@ -46,6 +46,6 @@
         android:layout_height="24dp"
         android:src="@drawable/ic_more"
         android:contentDescription="Más opciones"
-        app:itemIconTint="@color/colorPrimary"
+        app:tint="#ffffff"
         android:padding="4dp" />
 </LinearLayout>

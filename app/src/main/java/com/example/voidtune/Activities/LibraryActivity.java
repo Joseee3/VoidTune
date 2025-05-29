@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -58,12 +59,14 @@ public class LibraryActivity extends AppCompatActivity {
 
     private ProgressBar progressBar;
 
+    private static final int REQUEST_CODE_DETAIL_PLAYLIST = 1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_library);
 
-        ProgressBar progressBar = findViewById(R.id.progressBar);
+        progressBar = findViewById(R.id.progressBar);
+
 
         //Configurar el DrawerLayout
         drawerLayout = findViewById(R.id.drawer_layout);
@@ -76,9 +79,14 @@ public class LibraryActivity extends AppCompatActivity {
                 // Abrir actividad de configuración
                 startActivity(new Intent(this, SettingsActivity.class));
                 return true;
-            } else if (id == R.id.menu_logout) {
-                progressBar.setVisibility(View.VISIBLE); // Mostrar el ProgressBar
+           } else if (id == R.id.menu_logout) {
+                // Cerrar el DrawerLayout si está abierto
+                DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
+                if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                }
 
+                // Cerrar sesión en Firebase
                 FirebaseAuth.getInstance().signOut();
 
                 // Limpiar SharedPreferences
@@ -87,12 +95,12 @@ public class LibraryActivity extends AppCompatActivity {
                 editor.clear();
                 editor.apply();
 
-                // Redirigir al inicio de sesión y limpiar la pila de actividades
+                // Redirigir al inicio de sesión
                 Intent intent = new Intent(this, Login.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                progressBar.setVisibility(View.GONE); // Ocultar el ProgressBar
                 startActivity(intent);
                 finish();
+
                 return true;
             }
             return false;
@@ -203,7 +211,9 @@ public class LibraryActivity extends AppCompatActivity {
                     String imageUrl = playlistSnapshot.child("imageURL").getValue(String.class);
 
                     if (name != null && !name.isEmpty()) {
-                        if (imageUrl == null || imageUrl.isEmpty()) {
+                        if ("likeSong".equals(playlistId)) {
+                            imageUrl = "android.resource://" + getPackageName() + "/" + R.drawable.likesong;
+                        } else if (imageUrl == null || imageUrl.isEmpty()) {
                             imageUrl = "url_to_default_playlist_image"; // Imagen por defecto
                         }
                         libraryItems.add(new LibraryItem(playlistId, name, imageUrl, "playlist"));
@@ -220,7 +230,7 @@ public class LibraryActivity extends AppCompatActivity {
                     intent.putExtra("playlistName", item.getTitle());
                     intent.putExtra("playlistImage", item.getImageUrl());
                     intent.putExtra("type", "playlist");
-                    startActivity(intent);
+                    startActivityForResult(intent, REQUEST_CODE_DETAIL_PLAYLIST);
                 });
 
                 playlistAdapter.notifyDataSetChanged();
@@ -228,6 +238,19 @@ public class LibraryActivity extends AppCompatActivity {
                 Log.e("Firebase", "Error loading playlists: " + task.getException());
             }
         });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_DETAIL_PLAYLIST && resultCode == RESULT_OK) {
+            if (data.getBooleanExtra("playlistUpdated", false)) {
+                String updatedPlaylistId = data.getStringExtra("updatedPlaylistId");
+                String updatedPlaylistName = data.getStringExtra("updatedPlaylistName");
+                // Actualiza la lista local o recarga los datos
+                cargarLibraryItemsDesdeFirebase();
+            }
+        }
     }
 
    private void showCreatePlaylistDialog() {
@@ -283,6 +306,37 @@ public class LibraryActivity extends AppCompatActivity {
            Toast.makeText(this, "User not authenticated.", Toast.LENGTH_SHORT).show();
        }
    }
+
+    private void cerrarSesion() {
+        showLoading(true);
+
+        FirebaseAuth.getInstance().signOut();
+
+        // Limpiar SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences("UserSession", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.clear();
+        editor.apply();
+
+        // Simular un retraso para mostrar el ProgressBar
+        new android.os.Handler().postDelayed(() -> {
+            showLoading(false);
+
+            // Redirigir al inicio de sesión
+            Intent intent = new Intent(this, Login.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }, 2000); // 2 segundos de retraso
+    }
+
+    private void showLoading(boolean isLoading) {
+        if (isLoading) {
+            progressBar.setVisibility(View.VISIBLE);
+        } else {
+            progressBar.setVisibility(View.GONE);
+        }
+    }
 
 
 }

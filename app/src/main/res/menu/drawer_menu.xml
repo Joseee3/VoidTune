@@ -1,14 +1,11 @@
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/menu_settings"
         android:icon="@drawable/ic_settings"
-        android:title="Configuración"
-        android:textColor="#FFFFFF"
-        android:tint="#ffffff" />
+        android:title="Configuración" />
     <item
         android:id="@+id/menu_logout"
         android:icon="@drawable/logout"
-        android:title="Cerrar sesión"
-        android:textColor="#FFFFFF"
-        android:tint="#ffffff" />
+        android:title="Cerrar sesión" />
 </menu>

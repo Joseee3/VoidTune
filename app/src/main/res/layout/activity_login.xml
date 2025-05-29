@@ -127,19 +127,29 @@
             android:background="@drawable/edit_text_style"
             android:padding="10dp" />
 
+        <!-- ProgressBar añadido -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_below="@id/password"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="15dp"
+            android:indeterminateTint="#1DB954"
+            android:visibility="gone" />
+
         <Button
             android:id="@+id/loginButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/password"
-            android:layout_marginTop="20dp"
+            android:layout_below="@id/progressBar"
+            android:layout_marginTop="15dp"
             android:text="Iniciar sesión"
             android:backgroundTint="#1DB954"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:gravity="center"
             android:padding="10dp"/>
-
 
         <TextView
             android:id="@+id/forgotPassword"
@@ -152,13 +162,18 @@
             android:textColor="#1DB954"
             android:textSize="16sp" />
 
-
-        <ProgressBar
-            android:id="@+id/progressBar"
-            android:layout_width="wrap_content"
+        <Button
+            android:id="@+id/registerButton"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone" />
+            android:layout_below="@id/forgotPassword"
+            android:layout_marginTop="20dp"
+            android:text="Registrarse"
+            android:backgroundTint="#1DB954"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:padding="10dp" />
 
     </RelativeLayout>
 </ScrollView>

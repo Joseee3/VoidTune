@@ -58,6 +58,9 @@ public class RegisterActivity extends AppCompatActivity {
     private FirebaseAuth auth;
     private DatabaseReference databaseReference;
 
+
+    private ProgressBar progressBar;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -171,8 +174,8 @@ public class RegisterActivity extends AppCompatActivity {
            return;
        }
 
-       ProgressBar progressBar = findViewById(R.id.progressBar);
-       progressBar.setVisibility(View.VISIBLE);
+       // Mostrar spinner y deshabilitar botones
+       showLoading(true);
 
        auth.createUserWithEmailAndPassword(email, password)
            .addOnCompleteListener(task -> {
@@ -201,10 +204,27 @@ public class RegisterActivity extends AppCompatActivity {
                            });
                    }
                } else {
-                     progressBar.setVisibility(View.GONE);
+                   // Ocultar spinner
+                   showLoading(false);
                    Log.e("Firebase", "Error registering user", task.getException());
-                   Toast.makeText(this, "Error registering user: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                   Toast.makeText(this, "Error registrando usuario: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                }
            });
    }
+
+    private void showLoading(boolean isLoading) {
+        if (isLoading) {
+            progressBar.setVisibility(View.VISIBLE);
+            registerButton.setEnabled(false);
+            selectImageButton.setEnabled(false);
+            takePhotoButton.setEnabled(false);
+            registerButton.setText("Registrando...");
+        } else {
+            progressBar.setVisibility(View.GONE);
+            registerButton.setEnabled(true);
+            selectImageButton.setEnabled(true);
+            takePhotoButton.setEnabled(true);
+            registerButton.setText("Registrarse");
+        }
+    }
 }
