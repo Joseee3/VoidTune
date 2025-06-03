@@ -24,6 +24,11 @@
         android:theme="@style/Theme.VoidTune"
         tools:targetApi="31">
 
+        <service android:name=".service.MusicService" />
+
+
+
+
         <activity
             android:name=".Activities.DetailPlaylistActivity"
             android:exported="true">

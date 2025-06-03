@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.example.voidtune.BaseActivity;
 import com.example.voidtune.adapter.PlaylistAdapter;
 import com.example.voidtune.entities.Album;
 import com.example.voidtune.API.ApiClient;
@@ -47,7 +48,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class LibraryActivity extends AppCompatActivity {
+public class LibraryActivity extends BaseActivity {
 
     private RecyclerView albumsRecyclerView;
     private LibraryAdapter libraryAdapter;
@@ -247,12 +248,20 @@ public class LibraryActivity extends AppCompatActivity {
             if (data.getBooleanExtra("playlistUpdated", false)) {
                 String updatedPlaylistId = data.getStringExtra("updatedPlaylistId");
                 String updatedPlaylistName = data.getStringExtra("updatedPlaylistName");
-                // Actualiza la lista local o recarga los datos
+                // Update the local list or reload data
+                cargarLibraryItemsDesdeFirebase();
+            } else if (data.getBooleanExtra("playlistDeleted", false)) {
+                String deletedPlaylistId = data.getStringExtra("deletedPlaylistId");
+                // Handle playlist deletion (e.g., reload data)
                 cargarLibraryItemsDesdeFirebase();
             }
         }
     }
-
+    @Override
+    protected void onStart() {
+        super.onStart();
+        loadFloatingPlayer();
+    }
    private void showCreatePlaylistDialog() {
        AlertDialog dialog = new AlertDialog.Builder(this).create();
        View dialogView = getLayoutInflater().inflate(R.layout.dialog_create_playlist, null);

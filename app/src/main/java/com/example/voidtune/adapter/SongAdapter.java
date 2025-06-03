@@ -61,11 +61,16 @@ package com.example.voidtune.adapter;
             holder.songTitle.setText(song.getName());
             holder.songArtist.setText(song.getArtist());
 
+            holder.itemView.setOnClickListener(v -> {
+                if (onSongClickListener != null) {
+                    onSongClickListener.onSongClick(song);
+                }
+            });
+
             holder.moreOptions.setOnClickListener(v -> {
                 PopupMenu popupMenu = new PopupMenu(context, holder.moreOptions);
                 popupMenu.inflate(R.menu.song_options_menu);
 
-                // Mostrar "Eliminar de playlist" solo si es una playlist
                 if (isPlaylistContext) {
                     popupMenu.getMenu().add("Eliminar de playlist").setOnMenuItemClickListener(item -> {
                         if (onDeleteClickListener != null) {
@@ -207,6 +212,17 @@ package com.example.voidtune.adapter;
 
        public void setOnDeleteClickListener(OnDeleteClickListener listener) {
            this.onDeleteClickListener = listener;
+       }
+
+       // En SongAdapter.java
+       public interface OnSongClickListener {
+           void onSongClick(Song song);
+       }
+
+       private OnSongClickListener onSongClickListener;
+
+       public void setOnSongClickListener(OnSongClickListener listener) {
+           this.onSongClickListener = listener;
        }
 
     }

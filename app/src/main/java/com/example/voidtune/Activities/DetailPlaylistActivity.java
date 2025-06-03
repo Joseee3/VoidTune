@@ -1,15 +1,19 @@
 package com.example.voidtune.Activities;
 
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -18,14 +22,20 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.example.voidtune.BaseActivity;
+import com.example.voidtune.FloatingPlayerFragment;
 import com.example.voidtune.Fragments.PlaylistOptionsBottomSheet;
 import com.example.voidtune.R;
+import com.example.voidtune.VIewModel.MusicViewModel;
 import com.example.voidtune.adapter.SongAdapter;
 import com.example.voidtune.entities.Song;
+import com.example.voidtune.service.MusicService;
+import com.example.voidtune.service.PlayerService;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -42,15 +52,44 @@ import com.bumptech.glide.request.transition.Transition;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DetailPlaylistActivity extends AppCompatActivity {
+public class DetailPlaylistActivity extends BaseActivity {
 
     private SongAdapter songAdapter;
     private ArrayList<Song> songs;
 
+    private MusicService musicService;
+    private boolean isServiceBound = false;
+
+    private boolean isPlaying = false;
+
+    private String currentAudioUrl;
+    private String currentAlbumId; // Variable para almacenar el ID del álbum actual
+
+    private MusicViewModel musicViewModel;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setRetainedInstance(true);
+        Intent intent = new Intent(this, PlayerService.class);
+        startService(intent);
         setContentView(R.layout.detail_album);
+
+        // Inicializar MusicViewModel
+        musicViewModel = new ViewModelProvider(this).get(MusicViewModel.class);
+        // Observar cambios en el ID de la canción actual
+        musicViewModel.getCurrentSongId().observe(this, songId -> {
+            if (songId != null) {
+                updateFloatingPlayer(songId); // Actualiza el reproductor flotante
+            }
+        });
+
+        // Observar el estado de reproducción
+        musicViewModel.getIsPlaying().observe(this, isPlaying -> {
+            // Actualiza la UI según el estado de reproducción
+        });
+
 
         // Configurar RecyclerView
         RecyclerView songsRecyclerView = findViewById(R.id.songsRecyclerView);
@@ -86,8 +125,6 @@ public class DetailPlaylistActivity extends AppCompatActivity {
             playlistImageView.setImageResource(R.drawable.likesong);
             loadPlaylistSongs("likeSong");
 
-            findViewById(R.id.editPlaylist).setVisibility(View.INVISIBLE);
-            findViewById(R.id.deletePlaylist).setVisibility(View.INVISIBLE);
 
 
         } else if ("playlist".equals(type)) {
@@ -152,6 +189,37 @@ public class DetailPlaylistActivity extends AppCompatActivity {
                 return false;
             }
         });
+
+
+        songAdapter.setOnSongClickListener(song -> {
+            Log.d("SongClick", "Song ID: " + song.getId());
+
+            // Actualiza el reproductor flotante
+            updateFloatingPlayer(song.getId());
+
+            if (musicService != null && isServiceBound) { // Verifica que el servicio esté vinculado
+                Log.d("MusicService", "Playing song with URL: " + song.getAudioURL());
+                musicService.playSong(song.getAudioURL()); // Usa el servicio para reproducir la canción
+
+                FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+                    getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
+
+                if (floatingPlayerFragment != null && floatingPlayerFragment.isAdded()) { // Verifica que el fragmento esté añadido
+                    Log.d("FloatingPlayerFragment", "Updating player with song data.");
+                    floatingPlayerFragment.updatePlayer(currentAlbumId);
+                } else {
+                    Log.e("DetailPlaylistActivity", "FloatingPlayerFragment no está disponible.");
+                }
+            } else {
+                Log.e("MusicService", "Music service is not available.");
+                Toast.makeText(this, "Music service is not available.", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+
+
+    private void setRetainedInstance(boolean b) {
     }
 
     private void loadPlaylistSongs(String playlistId) {
@@ -194,6 +262,9 @@ public class DetailPlaylistActivity extends AppCompatActivity {
                     Song song = task.getResult().getValue(Song.class);
                     if (song != null) {
                         song.setId(songId); // Asigna el ID al objeto Song
+                        if (task.getResult().hasChild("albumID")) {
+                            song.setAlbumId(task.getResult().child("albumID").getValue(String.class)); // Asigna el albumId
+                        }
                         songs.add(song); // Agregar la canción a la lista
                         songAdapter.notifyItemInserted(songs.size() - 1); // Actualizar adaptador
                     }
@@ -369,6 +440,84 @@ public class DetailPlaylistActivity extends AppCompatActivity {
                     }
                 });
     }
+
+
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
+            musicService = binder.getService();
+            isServiceBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isServiceBound = false;
+        }
+    };
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        loadFloatingPlayer();
+    }
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (isServiceBound) {
+            unbindService(serviceConnection);
+            isServiceBound = false;
+        }
+    }
+
+   private void updateFloatingPlayer(String songId) {
+       currentAudioUrl = songId; // Guarda el songId como referencia actual
+
+       FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+               getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
+
+       if (floatingPlayerFragment == null) {
+           floatingPlayerFragment = new FloatingPlayerFragment();
+           getSupportFragmentManager().beginTransaction()
+                   .replace(R.id.floatingPlayerContainer, floatingPlayerFragment)
+                   .commitNow(); // Asegura que el fragmento esté añadido inmediatamente
+       }
+
+       if (floatingPlayerFragment.isAdded()) {
+           floatingPlayerFragment.updatePlayer(songId); // Pasa solo el songId
+       } else {
+           Log.e("DetailPlaylistActivity", "FloatingPlayerFragment no está disponible.");
+       }
+
+       if (isServiceBound) {
+           DatabaseReference songsRef = FirebaseDatabase.getInstance().getReference("songs").child(songId);
+           songsRef.child("audioURL").get().addOnCompleteListener(task -> {
+               if (task.isSuccessful() && task.getResult() != null) {
+                   String audioUrl = task.getResult().getValue(String.class);
+                   if (audioUrl != null) {
+                       musicService.playSong(audioUrl); // Reproduce la canción
+                   }
+               } else {
+                   Log.e("updateFloatingPlayer", "Error al cargar la URL de audio: " + task.getException());
+               }
+           });
+       }
+   }
+
+
+    @Override
+    protected void onResume () {
+        super.onResume();
+        FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+                getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
+
+        if (floatingPlayerFragment != null) {
+            floatingPlayerFragment.updatePlayer(currentAudioUrl); // Pass the songId or audioUrl
+        }
+    }
+
+
+
 
 
 }

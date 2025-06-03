@@ -1,17 +1,34 @@
 package com.example.voidtune.Activities;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
+import android.content.SharedPreferences;
+import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.example.voidtune.BaseActivity;
+import com.example.voidtune.FloatingPlayerFragment;
 import com.example.voidtune.adapter.LibraryAdapter;
 import com.example.voidtune.adapter.PlaylistAdapter;
 import com.example.voidtune.entities.Song;
@@ -23,13 +40,16 @@ import com.example.voidtune.API.ApiClient;
 import com.example.voidtune.API.ApiService;
 import com.example.voidtune.entities.Album;
 import com.example.voidtune.entities.LibraryItem;
+import com.example.voidtune.service.MusicService;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,7 +60,10 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BaseActivity {
+
+    private MusicService musicService;
+    private boolean isServiceBound = false;
 
     private DatabaseReference databaseReference;
 
@@ -55,10 +78,26 @@ public class MainActivity extends AppCompatActivity {
     private HomeListAdapter moreOfWhatYouLikeAdapter;
     private HomeListAdapter madeForYouAdapter;
 
+    private LinearLayout floatingPlayer;
+    private TextView songTitle, artistName;
+    private ImageView albumImage;
+    private MediaPlayer mediaPlayer;
+
+
+    private static final int REQUEST_CODE_DETAIL_PLAYLIST = 1;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+
+        // Cargar el FloatingPlayerFragment
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.floatingPlayerContainer, new FloatingPlayerFragment())
+                .commit();
+
 
         TextView greetingText = findViewById(R.id.greetingText);
 
@@ -69,11 +108,11 @@ public class MainActivity extends AppCompatActivity {
         // Determine the greeting based on the time
         String greeting;
         if (hour >= 5 && hour < 12) {
-            greeting = "Good morning";
+            greeting = "Buen día";
         } else if (hour >= 12 && hour < 18) {
-            greeting = "Good afternoon";
+            greeting = "Buenas tardes";
         } else {
-            greeting = "Good evening";
+            greeting = "Buenas noches";
         }
 
         // Get the user's name from Firebase Realtime Database
@@ -146,6 +185,7 @@ public class MainActivity extends AppCompatActivity {
         cargarLibraryItemsDesdeFirebase();
 
     }
+
 
     private void inicializarRecyclerViews() {
         suggestionsAdapter = configurarRecyclerViewDinamico(R.id.suggestionsRecyclerView);
@@ -337,25 +377,22 @@ public class MainActivity extends AppCompatActivity {
 
         DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
 
-        // Initialize the list
-        List<LibraryItem> libraryItems = new ArrayList<>();
-
         // Bind libraryRecyclerView
         RecyclerView libraryRecyclerView = findViewById(R.id.libraryRecyclerView);
         if (libraryRecyclerView == null) {
             Log.e("Error", "libraryRecyclerView no está definido en el diseño.");
             return;
         }
-        libraryRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        libraryRecyclerView.setLayoutManager(new GridLayoutManager(this, 2)); // 2 columnas
 
         userRef.child("playlists").get().addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
+                List<LibraryItem> libraryItems = new ArrayList<>(); // Limpiar lista antes de agregar nuevos datos
                 for (DataSnapshot playlistSnapshot : task.getResult().getChildren()) {
                     String playlistId = playlistSnapshot.getKey();
                     String name = playlistSnapshot.child("name").getValue(String.class);
                     String imageUrl = playlistSnapshot.child("imageURL").getValue(String.class);
 
-                    // Verificar si es la playlist "likesong"
                     if ("likeSong".equals(playlistId)) {
                         imageUrl = "android.resource://" + getPackageName() + "/" + R.drawable.likesong;
                     } else if (imageUrl == null || imageUrl.isEmpty()) {
@@ -365,9 +402,7 @@ public class MainActivity extends AppCompatActivity {
                     libraryItems.add(new LibraryItem(playlistId, name, imageUrl, "playlist"));
                 }
 
-                // Actualizar adaptador
                 PlaylistAdapter playlistAdapter = new PlaylistAdapter(this, libraryItems);
-                libraryRecyclerView.setLayoutManager(new GridLayoutManager(this, 2)); // 2 columnas
                 libraryRecyclerView.setAdapter(playlistAdapter);
 
                 playlistAdapter.setOnItemClickListener(item -> {
@@ -376,7 +411,7 @@ public class MainActivity extends AppCompatActivity {
                     intent.putExtra("playlistName", item.getTitle());
                     intent.putExtra("playlistImage", item.getImageUrl());
                     intent.putExtra("type", "playlist");
-                    startActivity(intent);
+                    startActivityForResult(intent, REQUEST_CODE_DETAIL_PLAYLIST);
                 });
 
                 playlistAdapter.notifyDataSetChanged();
@@ -384,6 +419,99 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("Firebase", "Error al cargar playlists: " + task.getException());
             }
         });
-
     }
+     @Override
+     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+         super.onActivityResult(requestCode, resultCode, data);
+         if (requestCode == REQUEST_CODE_DETAIL_PLAYLIST && resultCode == RESULT_OK) {
+             if (data != null) {
+                 if (data.getBooleanExtra("playlistDeleted", false)) {
+                     cargarLibraryItemsDesdeFirebase(); // Recargar datos al eliminar
+                 } else if (data.getBooleanExtra("playlistUpdated", false)) {
+                     cargarLibraryItemsDesdeFirebase(); // Recargar datos al actualizar
+                 }
+             }
+         }
+     }
+
+     private final ServiceConnection serviceConnection = new ServiceConnection() {
+         @Override
+         public void onServiceConnected(ComponentName name, IBinder service) {
+             MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
+             musicService = binder.getService();
+             isServiceBound = true;
+         }
+
+         @Override
+         public void onServiceDisconnected(ComponentName name) {
+             isServiceBound = false;
+         }
+     };
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        loadFloatingPlayer();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (isServiceBound) {
+            unbindService(serviceConnection);
+            isServiceBound = false;
+        }
+    }
+
+
+     private void fetchAndPlaySong(String songId) {
+         DatabaseReference songRef = FirebaseDatabase.getInstance().getReference("songs").child(songId);
+
+         songRef.addValueEventListener(new ValueEventListener() {
+             @Override
+             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                 if (snapshot.exists()) {
+                     Song song = snapshot.getValue(Song.class);
+                     if (song != null) {
+                         updateFloatingPlayer(song.getName(), song.getArtist(), R.drawable.img_album, song.audioURL);
+                     }
+                 } else {
+                     Toast.makeText(MainActivity.this, "The song does not exist.", Toast.LENGTH_SHORT).show();
+                 }
+             }
+
+             @Override
+             public void onCancelled(@NonNull DatabaseError error) {
+                 Toast.makeText(MainActivity.this, "Error loading data: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+             }
+         });
+     }
+
+     private void updateFloatingPlayer(String title, String artist, int albumResId, String audioUrl) {
+         songTitle.setText(title);
+         artistName.setText(artist);
+         albumImage.setImageResource(albumResId);
+         floatingPlayer.setVisibility(View.VISIBLE);
+
+         if (isServiceBound) {
+             musicService.playSong(audioUrl);
+         }
+     }
+
+     private void playSong(String url) {
+         if (mediaPlayer != null) {
+             mediaPlayer.stop();
+             mediaPlayer.release();
+         }
+
+         mediaPlayer = new MediaPlayer();
+
+         try {
+             mediaPlayer.setDataSource(url);
+             mediaPlayer.prepare();
+             mediaPlayer.start();
+         } catch (Exception e) {
+             Toast.makeText(this, "Error playing the song: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+         }
+     }
 }
