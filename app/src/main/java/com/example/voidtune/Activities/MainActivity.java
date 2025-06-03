@@ -83,6 +83,8 @@ public class MainActivity extends BaseActivity {
     private ImageView albumImage;
     private MediaPlayer mediaPlayer;
 
+    private String currentAudioUrl;
+
 
     private static final int REQUEST_CODE_DETAIL_PLAYLIST = 1;
 
@@ -297,66 +299,7 @@ public class MainActivity extends BaseActivity {
             }
         });
     }
-
-    //        private void cargarAlbumYAbrirDetalle(String albumId) {
-//            if (albumId == null || albumId.isEmpty()) {
-//                Log.e("Firebase", "El albumId es nulo o está vacío");
-//                return;
-//            }
-//
-//            Log.d("Firebase", "Cargando detalles del álbum con ID: " + albumId);
-//
-//            // Cargar detalles del álbum desde Firebase
-//            databaseReference.child("albums").child(albumId).get().addOnCompleteListener(task -> {
-//                if (task.isSuccessful() && task.getResult() != null) {
-//                    DataSnapshot albumSnapshot = task.getResult();
-//                    String albumName = albumSnapshot.child("name").getValue(String.class);
-//                    String albumImage = albumSnapshot.child("imageURL").getValue(String.class);
-//                    List<Song> songs = new ArrayList<>();
-//
-//                    // Recuperar los IDs de las canciones
-//                    for (DataSnapshot songSnapshot : albumSnapshot.child("songs").getChildren()) {
-//                        String songId = songSnapshot.getValue(String.class);
-//                        if (songId != null && !songId.isEmpty()) {
-//                            // Recuperar detalles de la canción desde el nodo "songs"
-//                            databaseReference.child("songs").child(songId).get().addOnCompleteListener(songTask -> {
-//                                if (songTask.isSuccessful() && songTask.getResult() != null) {
-//                                    DataSnapshot songDetails = songTask.getResult();
-//                                    String songName = songDetails.child("name").getValue(String.class);
-//                                    String songArtist = songDetails.child("artist").getValue(String.class);
-//                                    String songAudioURL = songDetails.child("audioURL").getValue(String.class);
-//                                    String songDuration = songDetails.child("duration").getValue(String.class);
-//
-//                                    // Crear un objeto Song y agregarlo a la lista
-//                                    songs.add(new Song(songId, songName, songArtist, songAudioURL, songDuration));
-//
-//                                    // Si se han cargado todas las canciones, abrir la actividad
-//                                    if (songs.size() == albumSnapshot.child("songs").getChildrenCount()) {
-//                                        abrirDetalleAlbum(albumId, albumName, albumImage, songs);
-//                                    }
-//                                } else {
-//                                    Log.e("Firebase", "Error al cargar detalles de la canción: " + songTask.getException().getMessage());
-//                                }
-//                            });
-//                        } else {
-//                            Log.e("Firebase", "ID de canción nulo o vacío en el álbum " + albumId);
-//                        }
-//                    }
-//                } else {
-//                    Log.e("Firebase", "Error al cargar detalles del álbum: " + task.getException().getMessage());
-//                }
-//            });
-//        }
-//
-//        private void abrirDetalleAlbum(String albumId, String albumName, String albumImage, List<Song> songs) {
-//            Intent intent = new Intent(MainActivity.this, DetailAlbumActivity.class);
-//            intent.putExtra("albumId", albumId);
-//            intent.putExtra("albumName", albumName);
-//            intent.putExtra("albumImage", albumImage);
-//            intent.putParcelableArrayListExtra("songs", new ArrayList<>(songs));
-//            startActivity(intent);
-//        }
-    private void abrirDetalle(Album album) {
+ private void abrirDetalle(Album album) {
         Intent intent = new Intent(MainActivity.this, DetailAlbumActivity.class);
         intent.putExtra("albumId", album.getId());
         intent.putExtra("albumName", album.getName());
@@ -420,33 +363,33 @@ public class MainActivity extends BaseActivity {
             }
         });
     }
-     @Override
-     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-         super.onActivityResult(requestCode, resultCode, data);
-         if (requestCode == REQUEST_CODE_DETAIL_PLAYLIST && resultCode == RESULT_OK) {
-             if (data != null) {
-                 if (data.getBooleanExtra("playlistDeleted", false)) {
-                     cargarLibraryItemsDesdeFirebase(); // Recargar datos al eliminar
-                 } else if (data.getBooleanExtra("playlistUpdated", false)) {
-                     cargarLibraryItemsDesdeFirebase(); // Recargar datos al actualizar
-                 }
-             }
-         }
-     }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_DETAIL_PLAYLIST && resultCode == RESULT_OK) {
+            if (data != null) {
+                if (data.getBooleanExtra("playlistDeleted", false)) {
+                    cargarLibraryItemsDesdeFirebase(); // Recargar datos al eliminar
+                } else if (data.getBooleanExtra("playlistUpdated", false)) {
+                    cargarLibraryItemsDesdeFirebase(); // Recargar datos al actualizar
+                }
+            }
+        }
+    }
 
-     private final ServiceConnection serviceConnection = new ServiceConnection() {
-         @Override
-         public void onServiceConnected(ComponentName name, IBinder service) {
-             MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
-             musicService = binder.getService();
-             isServiceBound = true;
-         }
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
+            musicService = binder.getService();
+            isServiceBound = true;
+        }
 
-         @Override
-         public void onServiceDisconnected(ComponentName name) {
-             isServiceBound = false;
-         }
-     };
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isServiceBound = false;
+        }
+    };
 
     @Override
     protected void onStart() {
@@ -464,54 +407,72 @@ public class MainActivity extends BaseActivity {
     }
 
 
-     private void fetchAndPlaySong(String songId) {
-         DatabaseReference songRef = FirebaseDatabase.getInstance().getReference("songs").child(songId);
+//    private void fetchAndPlaySong(String songId) {
+//        DatabaseReference songRef = FirebaseDatabase.getInstance().getReference("songs").child(songId);
+//
+//        songRef.addValueEventListener(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                if (snapshot.exists()) {
+//                    Song song = snapshot.getValue(Song.class);
+//                    if (song != null) {
+//                        updateFloatingPlayer(song.getName(), song.getArtist(), R.drawable.img_album, song.audioURL);
+//                    }
+//                } else {
+//                    Toast.makeText(MainActivity.this, "The song does not exist.", Toast.LENGTH_SHORT).show();
+//                }
+//            }
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//                Toast.makeText(MainActivity.this, "Error loading data: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+//            }
+//        });
+//    }
 
-         songRef.addValueEventListener(new ValueEventListener() {
-             @Override
-             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                 if (snapshot.exists()) {
-                     Song song = snapshot.getValue(Song.class);
-                     if (song != null) {
-                         updateFloatingPlayer(song.getName(), song.getArtist(), R.drawable.img_album, song.audioURL);
-                     }
-                 } else {
-                     Toast.makeText(MainActivity.this, "The song does not exist.", Toast.LENGTH_SHORT).show();
-                 }
-             }
+    private void saveSongToSharedPreferences(String audioUrl, String title, String artist, String albumImageUrl) {
+        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("currentAudioUrl", audioUrl);
+        editor.putString("title", title);
+        editor.putString("artist", artist);
+        editor.putString("albumImageUrl", albumImageUrl);
+        editor.apply();
+    }
 
-             @Override
-             public void onCancelled(@NonNull DatabaseError error) {
-                 Toast.makeText(MainActivity.this, "Error loading data: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-             }
-         });
-     }
+    private void updateFloatingPlayer(String songId) {
+        currentAudioUrl = songId;
 
-     private void updateFloatingPlayer(String title, String artist, int albumResId, String audioUrl) {
-         songTitle.setText(title);
-         artistName.setText(artist);
-         albumImage.setImageResource(albumResId);
-         floatingPlayer.setVisibility(View.VISIBLE);
+        FirebaseDatabase.getInstance().getReference("songs").child(songId)
+            .get()
+            .addOnCompleteListener(task -> {
+                if (task.isSuccessful() && task.getResult() != null) {
+                    String audioUrl = task.getResult().child("audioURL").getValue(String.class);
+                    String title = task.getResult().child("title").getValue(String.class);
+                    String artist = task.getResult().child("artist").getValue(String.class);
+                    String albumImageUrl = task.getResult().child("albumImage").getValue(String.class);
 
-         if (isServiceBound) {
-             musicService.playSong(audioUrl);
-         }
-     }
+                    if (audioUrl != null && title != null && artist != null && albumImageUrl != null) {
+                        // Guardar los datos en SharedPreferences
+                        saveSongToSharedPreferences(audioUrl, title, artist, albumImageUrl);
 
-     private void playSong(String url) {
-         if (mediaPlayer != null) {
-             mediaPlayer.stop();
-             mediaPlayer.release();
-         }
+                        // Actualizar el reproductor flotante directamente
+                        FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+                            getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
 
-         mediaPlayer = new MediaPlayer();
+                        if (floatingPlayerFragment != null && floatingPlayerFragment.isAdded()) {
+                            floatingPlayerFragment.updatePlayer(audioUrl);
+                            findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
+                        } else {
+                            Log.e("updateFloatingPlayer", "FloatingPlayerFragment no está disponible.");
+                        }
+                    } else {
+                        Log.e("updateFloatingPlayer", "Datos incompletos para la canción.");
+                    }
+                } else {
+                    Log.e("updateFloatingPlayer", "Error al cargar los datos de la canción: " + task.getException());
+                }
+            });
+    }
 
-         try {
-             mediaPlayer.setDataSource(url);
-             mediaPlayer.prepare();
-             mediaPlayer.start();
-         } catch (Exception e) {
-             Toast.makeText(this, "Error playing the song: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-         }
-     }
 }

@@ -1,9 +1,13 @@
 package com.example.voidtune.Activities;
 
 import android.app.AlertDialog;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,6 +27,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.voidtune.BaseActivity;
+import com.example.voidtune.FloatingPlayerFragment;
 import com.example.voidtune.adapter.PlaylistAdapter;
 import com.example.voidtune.entities.Album;
 import com.example.voidtune.API.ApiClient;
@@ -31,6 +36,7 @@ import com.example.voidtune.R;
 import com.example.voidtune.adapter.LibraryAdapter;
 import com.example.voidtune.entities.LibraryItem;
 import com.example.voidtune.entities.Song;
+import com.example.voidtune.service.MusicService;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.database.DataSnapshot;
@@ -61,6 +67,24 @@ public class LibraryActivity extends BaseActivity {
     private ProgressBar progressBar;
 
     private static final int REQUEST_CODE_DETAIL_PLAYLIST = 1;
+
+    private String currentAudioUrl;
+    private boolean isServiceBound = false;
+    private MusicService musicService;
+
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
+            musicService = binder.getService();
+            isServiceBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isServiceBound = false;
+        }
+    };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -182,6 +206,61 @@ public class LibraryActivity extends BaseActivity {
         });
     }
 
+//    @Override
+//    protected void onStart() {
+//        super.onStart();
+//        Intent intent = new Intent(this, MusicService.class);
+//        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+//
+//        // Restaurar el estado actual
+//        SharedPreferences sharedPreferences = getSharedPreferences("MusicPrefs", MODE_PRIVATE);
+//        currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+//
+//        loadFloatingPlayer();
+//    }
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Intent intent = new Intent(this, MusicService.class);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+        // No reiniciar el reproductor si ya hay una canción en reproducción
+        if (isServiceBound && musicService != null) {
+            musicService.restoreState();
+        }
+
+
+        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+        currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+
+        loadFloatingPlayer();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        if (isServiceBound) {
+            musicService.saveState();
+            unbindService(serviceConnection);
+            isServiceBound = false;
+        }
+
+        if (isServiceBound) {
+            SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("currentAudioUrl", currentAudioUrl);
+            editor.apply();
+
+            unbindService(serviceConnection);
+            isServiceBound = false;
+        }
+    }
+
+
+
 
   private void cargarLibraryItemsDesdeFirebase() {
         // Inicializa el RecyclerView
@@ -257,11 +336,7 @@ public class LibraryActivity extends BaseActivity {
             }
         }
     }
-    @Override
-    protected void onStart() {
-        super.onStart();
-        loadFloatingPlayer();
-    }
+
    private void showCreatePlaylistDialog() {
        AlertDialog dialog = new AlertDialog.Builder(this).create();
        View dialogView = getLayoutInflater().inflate(R.layout.dialog_create_playlist, null);

@@ -24,7 +24,10 @@
         android:theme="@style/Theme.VoidTune"
         tools:targetApi="31">
 
-        <service android:name=".service.MusicService" />
+        <service
+            android:name=".service.MusicService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
 
 

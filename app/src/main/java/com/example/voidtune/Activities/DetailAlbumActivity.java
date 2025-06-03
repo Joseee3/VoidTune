@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -50,12 +51,23 @@ public class DetailAlbumActivity extends BaseActivity {
             isServiceBound = false;
         }
     };
-
     @Override
     protected void onStart() {
         super.onStart();
+        // Vincula el servicio de música
         Intent intent = new Intent(this, MusicService.class);
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+        // No reiniciar el reproductor si ya hay una canción en reproducción
+        if (isServiceBound && musicService != null) {
+            musicService.restoreState();
+        }
+
+        // Carga los datos del reproductor desde SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+        currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+
+        // Asegúrate de que el reproductor flotante esté visible
         loadFloatingPlayer();
     }
 
@@ -63,8 +75,34 @@ public class DetailAlbumActivity extends BaseActivity {
     protected void onStop() {
         super.onStop();
         if (isServiceBound) {
+            // Guarda los datos del reproductor en SharedPreferences
+            SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("currentAudioUrl", currentAudioUrl);
+            editor.apply();
+
+            // Desvincula el servicio de música
             unbindService(serviceConnection);
             isServiceBound = false;
+        }
+    }
+
+    protected void loadFloatingPlayer() {
+        FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+                getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
+
+        if (floatingPlayerFragment == null) {
+            floatingPlayerFragment = new FloatingPlayerFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.floatingPlayerContainer, floatingPlayerFragment)
+                    .commitNow();
+        }
+
+        if (currentAudioUrl != null) {
+            floatingPlayerFragment.updatePlayer(currentAudioUrl);
+            findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
+        } else {
+            findViewById(R.id.floatingPlayerContainer).setVisibility(View.GONE);
         }
     }
 
@@ -72,6 +110,7 @@ public class DetailAlbumActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.detail_album);
+
 
         // Configurar RecyclerView
         recyclerView = findViewById(R.id.songsRecyclerView);
@@ -157,12 +196,4 @@ public class DetailAlbumActivity extends BaseActivity {
         }
     }
 
-    protected void loadFloatingPlayer() {
-        FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
-                getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
-
-        if (floatingPlayerFragment != null) {
-            floatingPlayerFragment.updatePlayer(currentAudioUrl);
-        }
-    }
 }

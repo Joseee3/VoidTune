@@ -53,33 +53,60 @@ protected void onDestroy() {
     }
 }
 
+@Override
+protected void onSaveInstanceState(Bundle outState) {
+    super.onSaveInstanceState(outState);
 
-    protected void loadFloatingPlayer() {
-        // Cargar datos del caché
+    SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", Context.MODE_PRIVATE);
+    String title = sharedPreferences.getString("title", null);
+    String artist = sharedPreferences.getString("artist", null);
+    String albumImageUrl = sharedPreferences.getString("albumImageUrl", null);
+
+    outState.putString("title", title);
+    outState.putString("artist", artist);
+    outState.putString("albumImageUrl", albumImageUrl);
+}
+
+@Override
+protected void onRestoreInstanceState(Bundle savedInstanceState) {
+    super.onRestoreInstanceState(savedInstanceState);
+
+    String title = savedInstanceState.getString("title");
+    String artist = savedInstanceState.getString("artist");
+    String albumImageUrl = savedInstanceState.getString("albumImageUrl");
+
+    if (title != null && artist != null) {
         SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", Context.MODE_PRIVATE);
-        String title = sharedPreferences.getString("title", null);
-        String artist = sharedPreferences.getString("artist", null);
-        String albumImageUrl = sharedPreferences.getString("albumImageUrl", null);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("title", title);
+        editor.putString("artist", artist);
+        editor.putString("albumImageUrl", albumImageUrl);
+        editor.apply();
+    }
 
-        if (title != null && artist != null) {
-            // Mostrar el flotante con los datos cargados
-            TextView songTitle = findViewById(R.id.SongTitle);
-            TextView songArtist = findViewById(R.id.ArtistName);
-            ImageView albumImage = findViewById(R.id.AlbumImage);
+    loadFloatingPlayer(); // Recarga el reproductor flotante
+}
 
-            if (songTitle != null) songTitle.setText(title);
-            if (songArtist != null) songArtist.setText(artist);
-            if (albumImage != null && albumImageUrl != null) {
-                Glide.with(this)
-                        .load(albumImageUrl)
-                        .placeholder(R.drawable.img_album)
-                        .into(albumImage);
-            }
 
-            View floatingPlayer = findViewById(R.id.floatingPlayerContainer);
-            if (floatingPlayer != null) {
-                floatingPlayer.setVisibility(View.VISIBLE);
-            }
+   protected void loadFloatingPlayer() {
+        FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+                getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
+
+        if (floatingPlayerFragment == null) {
+            floatingPlayerFragment = new FloatingPlayerFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.floatingPlayerContainer, floatingPlayerFragment)
+                    .commitNow();
+        }
+
+        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+        String currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+
+        if (currentAudioUrl != null) {
+            floatingPlayerFragment.updatePlayer(currentAudioUrl);
+            findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
+        } else {
+            findViewById(R.id.floatingPlayerContainer).setVisibility(View.GONE);
         }
     }
 }
