@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Binder;
 import android.os.Build;
@@ -92,12 +93,29 @@ public class MusicService extends Service {
             }
             mediaPlayer = new MediaPlayer();
             currentAudioUrl = audioUrl;
+
             try {
                 mediaPlayer.setDataSource(audioUrl);
-                mediaPlayer.prepare();
-                mediaPlayer.start();
-            } catch (Exception e) {
-                Log.e("MusicService", "Error al reproducir: " + e.getMessage());
+                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+
+                // Listener para manejar el buffering
+                mediaPlayer.setOnPreparedListener(mp -> {
+                    mp.start(); // Inicia la reproducción automáticamente cuando esté listo
+                    Log.d("MusicService", "Reproducción iniciada.");
+                });
+
+                mediaPlayer.setOnBufferingUpdateListener((mp, percent) -> {
+                    Log.d("MusicService", "Buffering: " + percent + "%");
+                });
+
+                mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                    Log.e("MusicService", "Error en MediaPlayer: " + what + ", extra: " + extra);
+                    return true;
+                });
+
+                mediaPlayer.prepareAsync(); // Prepara el buffer de forma asíncrona
+            } catch (IOException e) {
+                Log.e("MusicService", "Error al configurar el MediaPlayer: " + e.getMessage());
             }
         }
     }
@@ -129,6 +147,11 @@ public boolean isPlaying() {
 public void restoreState() {
     if (mediaPlayer != null && currentAudioUrl != null) {
         mediaPlayer.seekTo(currentPosition);
+        if (!mediaPlayer.isPlaying()) {
+            Log.d("MusicService", "El reproductor está en pausa, no se reanudará automáticamente.");
+        } else {
+            mediaPlayer.pause(); // Asegura que no se reanude automáticamente
+        }
     }
 }
 
