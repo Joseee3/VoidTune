@@ -32,11 +32,28 @@ import java.util.ArrayList;
 
 public class DetailAlbumActivity extends BaseActivity {
 
+    public ArrayList<String> getPlaylist() {
+        return playlist;
+    }
+
+    public int getCurrentSongIndex() {
+        return currentSongIndex;
+    }
+
+    public void setCurrentSongIndex(int index) {
+        this.currentSongIndex = index;
+    }
+
+
     private boolean isServiceBound = false;
     private MusicService musicService;
     private RecyclerView recyclerView;
     private ArrayList<Song> songs = new ArrayList<>();
     private String currentAudioUrl;
+
+    private int currentSongIndex = 0;
+    private ArrayList<String> playlist;
+
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -148,7 +165,9 @@ public class DetailAlbumActivity extends BaseActivity {
         albumTitle.setText(albumName);
         Glide.with(this).load(albumImage).into(albumCover);
 
-        // Cargar canciones desde Firebase
+        // Inicializar la lista de reproducción
+        playlist = new ArrayList<>();
+
         FirebaseDatabase.getInstance().getReference("albums").child(albumId).child("songs")
             .get()
             .addOnCompleteListener(task -> {
@@ -156,6 +175,9 @@ public class DetailAlbumActivity extends BaseActivity {
                     for (DataSnapshot songSnapshot : task.getResult().getChildren()) {
                         String songId = songSnapshot.getValue(String.class);
                         if (songId != null) {
+                            // Agregar el ID de la canción a la lista de reproducción
+                            playlist.add(songId);
+
                             FirebaseDatabase.getInstance().getReference("songs").child(songId)
                                 .get()
                                 .addOnCompleteListener(songTask -> {
@@ -170,14 +192,40 @@ public class DetailAlbumActivity extends BaseActivity {
                                 });
                         }
                     }
+
+                    // Verificar si la lista de reproducción está vacía
+                    if (playlist.isEmpty()) {
+                        Log.e("DetailAlbumActivity", "La lista de reproducción está vacía.");
+                    } else {
+                        Log.d("DetailAlbumActivity", "Lista de reproducción cargada con " + playlist.size() + " canciones.");
+
+                        // Iniciar el servicio MusicService con la lista de reproducción
+                        Intent intent = new Intent(this, MusicService.class);
+                        intent.putStringArrayListExtra("playlist", playlist);
+                        intent.putExtra("sourceType", "album");
+                        intent.putExtra("shouldStartPlayback", false); // Evitar reproducción automática
+                        startService(intent);
+                    }
                 } else {
                     Log.e("Firebase", "Error al cargar canciones: " + task.getException().getMessage());
                 }
             });
     }
 
-    private void updateFloatingPlayer(String songId) {
+   public void updateFloatingPlayer(String songId) {
+        if (songId == null || songId.isEmpty()) {
+            Log.e("DetailAlbumActivity", "El songId es nulo o vacío. No se puede actualizar el reproductor.");
+            return;
+        }
+
         currentAudioUrl = songId;
+
+        // Guardar la nueva canción en SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("currentAudioUrl", currentAudioUrl);
+        editor.apply();
+        Log.d("DetailAlbumActivity", "Nueva canción guardada en SharedPreferences: " + currentAudioUrl);
 
         FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
                 getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
@@ -191,6 +239,13 @@ public class DetailAlbumActivity extends BaseActivity {
 
         if (floatingPlayerFragment.isAdded()) {
             floatingPlayerFragment.updatePlayer(songId);
+
+            // Comunicar el cambio al servicio de música
+            if (musicService != null && isServiceBound) {
+                musicService.playSong(songId);
+            } else {
+                Log.e("DetailAlbumActivity", "El servicio de música no está disponible.");
+            }
         } else {
             Log.e("DetailAlbumActivity", "FloatingPlayerFragment no está disponible.");
         }

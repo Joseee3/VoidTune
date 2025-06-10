@@ -205,6 +205,14 @@ public class DetailPlaylistActivity extends BaseActivity {
             // Actualiza el reproductor flotante
             updateFloatingPlayer(song.getId());
 
+
+            // Inicia la reproducción de la lista de canciones
+            List<String> songIds = new ArrayList<>();
+            for (Song s : songs) {
+                songIds.add(s.getId());
+            }
+            iniciarReproduccion(songIds, "playlist"); // "playlist" indica que es una lista de reproducción
+
             if (musicService != null && isServiceBound) { // Verifica que el servicio esté vinculado
                 Log.d("MusicService", "Playing song with URL: " + song.getAudioURL());
                 musicService.playSong(song.getAudioURL()); // Usa el servicio para reproducir la canción
@@ -230,7 +238,7 @@ public class DetailPlaylistActivity extends BaseActivity {
     private void setRetainedInstance(boolean b) {
     }
 
-    private void loadPlaylistSongs(String playlistId) {
+   private void loadPlaylistSongs(String playlistId) {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) {
             Log.e("DetailPlaylist", "User not authenticated");
@@ -249,11 +257,25 @@ public class DetailPlaylistActivity extends BaseActivity {
             if (task.isSuccessful() && task.getResult() != null) {
                 List<String> songIds = new ArrayList<>();
                 for (DataSnapshot songSnapshot : task.getResult().getChildren()) {
-                    String songId = songSnapshot.getValue(String.class); // Obtener el ID de la canción
+                    String songId = songSnapshot.getValue(String.class);
                     if (songId != null) {
                         songIds.add(songId);
                     }
                 }
+
+                if (songIds.isEmpty()) {
+                    Log.e("DetailPlaylist", "La lista de reproducción está vacía.");
+                } else {
+                    Log.d("DetailPlaylist", "Lista de reproducción cargada con " + songIds.size() + " canciones.");
+
+                    // Iniciar el servicio MusicService con la lista de reproducción
+                    Intent intent = new Intent(this, MusicService.class);
+                    intent.putStringArrayListExtra("playlist", new ArrayList<>(songIds));
+                    intent.putExtra("sourceType", "playlist");
+                    intent.putExtra("shouldStartPlayback", false); // Evitar reproducción automática
+                    startService(intent);
+                }
+
                 fetchSongsDetails(songIds); // Buscar detalles de las canciones
             } else {
                 Log.e("DetailPlaylist", "Failed to load playlist songs: " + task.getException());
@@ -528,7 +550,6 @@ public class DetailPlaylistActivity extends BaseActivity {
   private void updateFloatingPlayer(String songId) {
       currentAudioUrl = songId;
 
-      // Recuperar datos de Firebase para la canción seleccionada
       FirebaseDatabase.getInstance().getReference("songs").child(songId)
           .get()
           .addOnCompleteListener(task -> {
@@ -540,13 +561,7 @@ public class DetailPlaylistActivity extends BaseActivity {
 
                   if (audioUrl != null && title != null && artist != null && albumImageUrl != null) {
                       // Guardar los datos en SharedPreferences
-                      SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-                      SharedPreferences.Editor editor = sharedPreferences.edit();
-                      editor.putString("currentAudioUrl", audioUrl);
-                      editor.putString("title", title);
-                      editor.putString("artist", artist);
-                      editor.putString("albumImageUrl", albumImageUrl);
-                      editor.apply();
+                      saveSongToSharedPreferences(audioUrl, title, artist, albumImageUrl);
 
                       // Actualizar el reproductor flotante directamente
                       FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
@@ -574,10 +589,15 @@ public class DetailPlaylistActivity extends BaseActivity {
        editor.putString("title", title);
        editor.putString("artist", artist);
        editor.putString("albumImageUrl", albumImageUrl);
-       editor.apply(); // Guarda los datos de forma asíncrona
-       Log.d("SharedPreferences", "Datos guardados: " + title + ", " + artist + ", " + albumImageUrl + ", " + audioUrl);
+       editor.apply();
    }
 
+   private void iniciarReproduccion(List<String> canciones, String sourceType) {
+       Intent musicServiceIntent = new Intent(this, MusicService.class);
+       musicServiceIntent.putStringArrayListExtra("playlist", new ArrayList<>(canciones));
+       musicServiceIntent.putExtra("sourceType", sourceType); // "album" o "playlist"
+       startService(musicServiceIntent);
+   }
 
     @Override
     protected void onResume () {

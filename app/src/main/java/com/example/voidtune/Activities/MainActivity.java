@@ -95,6 +95,26 @@ public class MainActivity extends BaseActivity {
         setContentView(R.layout.activity_home);
 
 
+        // Recuperar datos del Intent
+        ArrayList<String> playlist = getIntent().getStringArrayListExtra("songs");
+        int currentSongIndex = 0; // Índice inicial (puedes ajustarlo según sea necesario)
+
+        if (playlist != null && !playlist.isEmpty()) {
+            Log.d("DetailAlbumActivity", "Playlist recibida: " + playlist);
+
+            // Verificar si es la primera o última canción
+            if (currentSongIndex == 0) {
+                Log.d("DetailAlbumActivity", "Es la primera canción.");
+            } else if (currentSongIndex == playlist.size() - 1) {
+                Log.d("DetailAlbumActivity", "Es la última canción.");
+            } else {
+                Log.d("DetailAlbumActivity", "Canción siguiente: " + playlist.get(currentSongIndex + 1));
+            }
+        } else {
+            Log.e("DetailAlbumActivity", "No se recibieron canciones en el Intent.");
+        }
+
+
         // Cargar el FloatingPlayerFragment
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.floatingPlayerContainer, new FloatingPlayerFragment())
@@ -287,6 +307,9 @@ public class MainActivity extends BaseActivity {
                     songs.add(songSnapshot.getValue(String.class));
                 }
 
+                // Iniciar reproducción
+                iniciarReproduccion(songs, "album");
+
                 // Crear un Intent para abrir DetailAlbumActivity
                 Intent intent = new Intent(MainActivity.this, DetailAlbumActivity.class);
                 intent.putExtra("albumId", albumId);
@@ -320,12 +343,23 @@ public class MainActivity extends BaseActivity {
 
         DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
 
-        // Bind libraryRecyclerView
+
+        // Inicializar el adaptador si no está inicializado
+        if (playlistAdapter == null) {
+            playlistAdapter = new PlaylistAdapter(this, new ArrayList<>());
+        }
+
+        // Configurar el RecyclerView si no está configurado
         RecyclerView libraryRecyclerView = findViewById(R.id.libraryRecyclerView);
         if (libraryRecyclerView == null) {
             Log.e("Error", "libraryRecyclerView no está definido en el diseño.");
             return;
         }
+        if (libraryRecyclerView.getAdapter() == null) {
+            libraryRecyclerView.setLayoutManager(new GridLayoutManager(this, 2)); // 2 columnas
+            libraryRecyclerView.setAdapter(playlistAdapter);
+        }
+
         libraryRecyclerView.setLayoutManager(new GridLayoutManager(this, 2)); // 2 columnas
 
         userRef.child("playlists").get().addOnCompleteListener(task -> {
@@ -348,21 +382,43 @@ public class MainActivity extends BaseActivity {
                 PlaylistAdapter playlistAdapter = new PlaylistAdapter(this, libraryItems);
                 libraryRecyclerView.setAdapter(playlistAdapter);
 
-                playlistAdapter.setOnItemClickListener(item -> {
-                    Intent intent = new Intent(this, DetailPlaylistActivity.class);
-                    intent.putExtra("playlistId", item.getId());
-                    intent.putExtra("playlistName", item.getTitle());
-                    intent.putExtra("playlistImage", item.getImageUrl());
-                    intent.putExtra("type", "playlist");
-                    startActivityForResult(intent, REQUEST_CODE_DETAIL_PLAYLIST);
-                });
+               playlistAdapter.setOnItemClickListener(item -> {
+                   String playlistId = item.getId();
+                   DatabaseReference playlistRef = userRef.child("playlists").child(playlistId).child("songs");
 
+                   playlistRef.get().addOnCompleteListener(playlistTask -> {
+                       if (playlistTask.isSuccessful() && playlistTask.getResult() != null) {
+                           List<String> songIds = new ArrayList<>();
+                           for (DataSnapshot songSnapshot : playlistTask.getResult().getChildren()) {
+                               String songId = songSnapshot.getValue(String.class);
+                               if (songId != null) {
+                                   songIds.add(songId);
+                               }
+                           }
+
+                           // Iniciar reproducción directamente
+                           iniciarReproduccion(songIds, "playlist");
+
+                           Intent intent = new Intent(this, DetailPlaylistActivity.class);
+                           intent.putExtra("playlistId", playlistId);
+                           intent.putExtra("playlistName", item.getTitle());
+                           intent.putExtra("playlistImage", item.getImageUrl());
+                           intent.putExtra("type", "playlist");
+                           intent.putStringArrayListExtra("songs", new ArrayList<>(songIds));
+                           startActivityForResult(intent, REQUEST_CODE_DETAIL_PLAYLIST);
+                       } else {
+                           Log.e("Firebase", "Error al cargar canciones de la playlist: " + playlistTask.getException());
+                       }
+                   });
+               });
                 playlistAdapter.notifyDataSetChanged();
             } else {
                 Log.e("Firebase", "Error al cargar playlists: " + task.getException());
             }
         });
-    }
+ }
+
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -473,6 +529,13 @@ public class MainActivity extends BaseActivity {
                     Log.e("updateFloatingPlayer", "Error al cargar los datos de la canción: " + task.getException());
                 }
             });
+    }
+
+    private void iniciarReproduccion(List<String> canciones, String sourceType) {
+        Intent musicServiceIntent = new Intent(this, MusicService.class);
+        musicServiceIntent.putStringArrayListExtra("playlist", new ArrayList<>(canciones));
+        musicServiceIntent.putExtra("sourceType", sourceType); // "album" o "playlist"
+        startService(musicServiceIntent);
     }
 
 }

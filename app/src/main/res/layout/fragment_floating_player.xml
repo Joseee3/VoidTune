@@ -11,6 +11,7 @@
     android:gravity="center_vertical"
     android:clickable="false"
     android:focusable="false">
+
     <ImageView
         android:id="@+id/AlbumImage"
         android:layout_width="64dp"
@@ -47,12 +48,30 @@
             android:maxLines="1" />
     </LinearLayout>
 
-<ImageButton
-    android:id="@+id/miniPlayPauseButton"
-    android:layout_width="48dp"
-    android:layout_height="48dp"
-    android:src="@drawable/ic_pause"
-    android:background="@null"
-    android:contentDescription="Play/Pause"
-    app:tint="@android:color/white" />
+    <ImageButton
+        android:id="@+id/previousButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_prev"
+        android:background="@null"
+        android:contentDescription="Previous"
+        app:tint="@android:color/white" />
+
+    <ImageButton
+        android:id="@+id/miniPlayPauseButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_pause"
+        android:background="@null"
+        android:contentDescription="Play/Pause"
+        app:tint="@android:color/white" />
+
+    <ImageButton
+        android:id="@+id/nextButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_next"
+        android:background="@null"
+        android:contentDescription="Next"
+        app:tint="@android:color/white" />
 </LinearLayout>
