@@ -29,6 +29,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public class DetailAlbumActivity extends BaseActivity {
 
@@ -68,41 +69,51 @@ public class DetailAlbumActivity extends BaseActivity {
             isServiceBound = false;
         }
     };
-    @Override
-    protected void onStart() {
-        super.onStart();
-        // Vincula el servicio de música
-        Intent intent = new Intent(this, MusicService.class);
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
 
-        // No reiniciar el reproductor si ya hay una canción en reproducción
-        if (isServiceBound && musicService != null) {
-            musicService.restoreState();
+@Override
+protected void onStart() {
+    super.onStart();
+    // Vincula el servicio de música
+    Intent intent = new Intent(this, MusicService.class);
+    bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+    // Restaura el estado del reproductor desde SharedPreferences
+    SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+    currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+    int savedPosition = sharedPreferences.getInt("currentPosition", 0);
+    boolean isPlaying = sharedPreferences.getBoolean("isPlaying", false);
+
+    if (isServiceBound && musicService != null && currentAudioUrl != null) {
+        musicService.restoreState(); // Sin argumentos
+        if (isPlaying) {
+            musicService.pauseSong();
+        } else {
+            musicService.pauseSong();
         }
+    }
 
-        // Carga los datos del reproductor desde SharedPreferences
+    // Asegúrate de que el reproductor flotante esté visible
+    loadFloatingPlayer();
+}
+
+@Override
+protected void onStop() {
+    super.onStop();
+
+    if (isServiceBound && musicService != null) {
+        // Guarda el estado del reproductor en SharedPreferences
         SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-        currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("currentAudioUrl", musicService.getCurrentAudioUrl());
+        editor.putInt("currentPosition", musicService.getCurrentPosition());
+        editor.putBoolean("isPlaying", musicService.isPlaying());
+        editor.apply();
 
-        // Asegúrate de que el reproductor flotante esté visible
-        loadFloatingPlayer();
+        unbindService(serviceConnection);
+        isServiceBound = false;
     }
+}
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-        if (isServiceBound) {
-            // Guarda los datos del reproductor en SharedPreferences
-            SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString("currentAudioUrl", currentAudioUrl);
-            editor.apply();
-
-            // Desvincula el servicio de música
-            unbindService(serviceConnection);
-            isServiceBound = false;
-        }
-    }
 
     protected void loadFloatingPlayer() {
         FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
@@ -172,11 +183,11 @@ public class DetailAlbumActivity extends BaseActivity {
             .get()
             .addOnCompleteListener(task -> {
                 if (task.isSuccessful() && task.getResult() != null) {
+                    playlist.clear(); // Limpia la lista anterior
                     for (DataSnapshot songSnapshot : task.getResult().getChildren()) {
                         String songId = songSnapshot.getValue(String.class);
                         if (songId != null) {
-                            // Agregar el ID de la canción a la lista de reproducción
-                            playlist.add(songId);
+                            playlist.add(songId); // Agrega las canciones a la nueva lista
 
                             FirebaseDatabase.getInstance().getReference("songs").child(songId)
                                 .get()
@@ -193,17 +204,20 @@ public class DetailAlbumActivity extends BaseActivity {
                         }
                     }
 
-                    // Verificar si la lista de reproducción está vacía
-                    if (playlist.isEmpty()) {
-                        Log.e("DetailAlbumActivity", "La lista de reproducción está vacía.");
-                    } else {
-                        Log.d("DetailAlbumActivity", "Lista de reproducción cargada con " + playlist.size() + " canciones.");
+                    // Guarda la nueva lista de reproducción en SharedPreferences
+                    SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putString("sourceType", "album");
+                    editor.putString("currentAlbumId", albumId);
+                    editor.putStringSet("playlist", new HashSet<>(playlist)); // Guarda la lista como un Set
+                    editor.apply();
 
-                        // Iniciar el servicio MusicService con la lista de reproducción
+                    // Actualiza el servicio de música con la nueva lista
+                    if (!playlist.isEmpty()) {
                         Intent intent = new Intent(this, MusicService.class);
                         intent.putStringArrayListExtra("playlist", playlist);
                         intent.putExtra("sourceType", "album");
-                        intent.putExtra("shouldStartPlayback", false); // Evitar reproducción automática
+                        intent.putExtra("shouldStartPlayback", false);
                         startService(intent);
                     }
                 } else {

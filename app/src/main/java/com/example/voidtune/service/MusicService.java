@@ -426,13 +426,20 @@ public boolean isPlaying() {
     return mediaPlayer != null && mediaPlayer.isPlaying();
 }
 
+private String sourceType; // Declaración de la variable
+
+public String getSourceType() {
+    return sourceType; // Devuelve el tipo de fuente actual
+}
+
 public void restoreState() {
     if (mediaPlayer != null && currentAudioUrl != null) {
         mediaPlayer.seekTo(currentPosition);
         if (!mediaPlayer.isPlaying()) {
-            Log.d("MusicService", "El reproductor está en pausa, no se reanudará automáticamente.");
+            mediaPlayer.start();
+            Log.d("MusicService", "Reproducción reanudada.");
         } else {
-            mediaPlayer.pause(); // Asegura que no se reanude automáticamente
+            Log.d("MusicService", "El reproductor ya está reproduciendo.");
         }
     }
 }
@@ -490,41 +497,46 @@ public String getCurrentAudioUrl() {
 
    private boolean isNotificationActive = false; // Variable para rastrear el estado de la notificación
 
-   @Override
-   public int onStartCommand(Intent intent, int flags, int startId) {
-       loadFromSharedPreferences();
+  @Override
+  public int onStartCommand(Intent intent, int flags, int startId) {
+      loadFromSharedPreferences();
 
-       if (intent != null) {
-           ArrayList<String> newPlaylist = intent.getStringArrayListExtra("playlist");
-           String sourceType = intent.getStringExtra("sourceType");
-           boolean shouldStartPlayback = intent.getBooleanExtra("shouldStartPlayback", false);
+      if (intent != null) {
+          ArrayList<String> newPlaylist = intent.getStringArrayListExtra("playlist");
+          String sourceType = intent.getStringExtra("sourceType");
+          boolean shouldStartPlayback = intent.getBooleanExtra("shouldStartPlayback", false);
 
-           if (newPlaylist != null) {
-               if (isPlaying() && playlist != null && !playlist.isEmpty()) {
-                   Log.d("MusicService", "Ya hay una canción en reproducción. No se sobrescribirá la lista.");
-               } else {
-                   setPlaylist(newPlaylist);
-                   Log.d("MusicService", "Lista de reproducción configurada desde: " + sourceType);
+          if (sourceType != null) {
+              this.sourceType = sourceType;
+          }
 
-                   if (shouldStartPlayback) {
-                       fetchAndSaveSongData(newPlaylist.get(0));
-                   }
-               }
-           }
-       }
+          if (newPlaylist != null) {
+              if (isPlaying() && playlist != null && !playlist.isEmpty() && currentAudioUrl != null
+                  && currentAudioUrl.equals(newPlaylist.get(0))) {
+                  Log.d("MusicService", "La canción actual ya está en reproducción. No se reiniciará.");
+              } else {
+                  setPlaylist(newPlaylist);
+                  Log.d("MusicService", "Lista de reproducción configurada desde: " + sourceType);
 
-       if (!isNotificationActive) { // Solo crea la notificación si no está activa
-           createNotificationChannel();
-           Notification notification = new NotificationCompat.Builder(this, "MusicServiceChannel")
-                   .setContentTitle("Reproduciendo música")
-                   .setContentText("Tu canción está en reproducción")
-                   .setSmallIcon(R.drawable.ic_music_note)
-                   .build();
-           startForeground(1, notification);
-           isNotificationActive = true; // Marca la notificación como activa
-       }
+                  if (shouldStartPlayback) {
+                      fetchAndSaveSongData(newPlaylist.get(0));
+                  }
+              }
+          }
+      }
 
-       return START_STICKY;
-   }
+      if (!isNotificationActive) {
+          createNotificationChannel();
+          Notification notification = new NotificationCompat.Builder(this, "MusicServiceChannel")
+                  .setContentTitle("Reproduciendo música")
+                  .setContentText("Tu canción está en reproducción")
+                  .setSmallIcon(R.drawable.ic_music_note)
+                  .build();
+          startForeground(1, notification);
+          isNotificationActive = true;
+      }
+
+      return START_STICKY;
+  }
 
 }

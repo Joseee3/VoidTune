@@ -486,49 +486,52 @@ public class DetailPlaylistActivity extends BaseActivity {
         }
     };
 
-   @Override
-   protected void onStart() {
-       super.onStart();
-       // Vincula el servicio de música
-       Intent intent = new Intent(this, MusicService.class);
-       bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Vincula el servicio de música
+        Intent intent = new Intent(this, MusicService.class);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
 
-       // No reiniciar el reproductor si ya hay una canción en reproducción
-       if (isServiceBound && musicService != null) {
-           musicService.restoreState();
-       }
+        // Restaura el estado del reproductor desde SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+        currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+        int savedPosition = sharedPreferences.getInt("currentPosition", 0);
+        boolean isPlaying = sharedPreferences.getBoolean("isPlaying", false);
 
-       // Carga los datos del reproductor desde SharedPreferences
-       SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-       currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+        if (isServiceBound && musicService != null && currentAudioUrl != null) {
+            musicService.restoreState(); // Sin argumentos
+            if (isPlaying) {
+                musicService.pauseSong();
+            } else {
+                musicService.pauseSong();
+            }
+        }
 
-       // Asegúrate de que el reproductor flotante esté visible
-       loadFloatingPlayer();
-   }
+        // Asegúrate de que el reproductor flotante esté visible
+        loadFloatingPlayer();
+    }
 
-   @Override
-   protected void onStop() {
-       super.onStop();
+    @Override
+    protected void onStop() {
+        super.onStop();
 
-       if (isServiceBound) {
-           musicService.saveState();
-           unbindService(serviceConnection);
-           isServiceBound = false;
-       }
-       if (isServiceBound) {
-           // Guarda los datos del reproductor en SharedPreferences
-           SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-           SharedPreferences.Editor editor = sharedPreferences.edit();
-           editor.putString("currentAudioUrl", currentAudioUrl);
-           editor.apply();
+        if (isServiceBound && musicService != null) {
+            // Guarda el estado del reproductor en SharedPreferences
+            SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("currentAudioUrl", musicService.getCurrentAudioUrl());
+            editor.putInt("currentPosition", musicService.getCurrentPosition());
+            editor.putBoolean("isPlaying", musicService.isPlaying());
+            editor.apply();
 
-           // Desvincula el servicio de música
-           unbindService(serviceConnection);
-           isServiceBound = false;
-       }
-   }
+            unbindService(serviceConnection);
+            isServiceBound = false;
+        }
+    }
 
-   protected void loadFloatingPlayer() {
+
+    protected void loadFloatingPlayer() {
        FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
                getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
 
@@ -547,40 +550,79 @@ public class DetailPlaylistActivity extends BaseActivity {
        }
    }
 
-  private void updateFloatingPlayer(String songId) {
-      currentAudioUrl = songId;
+//  private void updateFloatingPlayer(String songId) {
+//      currentAudioUrl = songId;
+//
+//      FirebaseDatabase.getInstance().getReference("songs").child(songId)
+//          .get()
+//          .addOnCompleteListener(task -> {
+//              if (task.isSuccessful() && task.getResult() != null) {
+//                  String audioUrl = task.getResult().child("audioURL").getValue(String.class);
+//                  String title = task.getResult().child("title").getValue(String.class);
+//                  String artist = task.getResult().child("artist").getValue(String.class);
+//                  String albumImageUrl = task.getResult().child("albumImage").getValue(String.class);
+//
+//                  if (audioUrl != null && title != null && artist != null && albumImageUrl != null) {
+//                      // Guardar los datos en SharedPreferences
+//                      saveSongToSharedPreferences(audioUrl, title, artist, albumImageUrl);
+//
+//                      // Actualizar el reproductor flotante directamente
+//                      FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+//                          getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
+//
+//                      if (floatingPlayerFragment != null && floatingPlayerFragment.isAdded()) {
+//                          floatingPlayerFragment.updatePlayer(audioUrl);
+//                          findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
+//                      } else {
+//                          Log.e("updateFloatingPlayer", "FloatingPlayerFragment no está disponible.");
+//                      }
+//                  } else {
+//                      Log.e("updateFloatingPlayer", "Datos incompletos para la canción.");
+//                  }
+//              } else {
+//                  Log.e("updateFloatingPlayer", "Error al cargar los datos de la canción: " + task.getException());
+//              }
+//          });
+//  }
 
-      FirebaseDatabase.getInstance().getReference("songs").child(songId)
-          .get()
-          .addOnCompleteListener(task -> {
-              if (task.isSuccessful() && task.getResult() != null) {
-                  String audioUrl = task.getResult().child("audioURL").getValue(String.class);
-                  String title = task.getResult().child("title").getValue(String.class);
-                  String artist = task.getResult().child("artist").getValue(String.class);
-                  String albumImageUrl = task.getResult().child("albumImage").getValue(String.class);
+    public void updateFloatingPlayer(String songId) {
+        if (songId == null || songId.isEmpty()) {
+            Log.e("DetailAlbumActivity", "El songId es nulo o vacío. No se puede actualizar el reproductor.");
+            return;
+        }
 
-                  if (audioUrl != null && title != null && artist != null && albumImageUrl != null) {
-                      // Guardar los datos en SharedPreferences
-                      saveSongToSharedPreferences(audioUrl, title, artist, albumImageUrl);
+        currentAudioUrl = songId;
 
-                      // Actualizar el reproductor flotante directamente
-                      FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
-                          getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
+        // Guardar la nueva canción en SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("currentAudioUrl", currentAudioUrl);
+        editor.apply();
+        Log.d("DetailAlbumActivity", "Nueva canción guardada en SharedPreferences: " + currentAudioUrl);
 
-                      if (floatingPlayerFragment != null && floatingPlayerFragment.isAdded()) {
-                          floatingPlayerFragment.updatePlayer(audioUrl);
-                          findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
-                      } else {
-                          Log.e("updateFloatingPlayer", "FloatingPlayerFragment no está disponible.");
-                      }
-                  } else {
-                      Log.e("updateFloatingPlayer", "Datos incompletos para la canción.");
-                  }
-              } else {
-                  Log.e("updateFloatingPlayer", "Error al cargar los datos de la canción: " + task.getException());
-              }
-          });
-  }
+        FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+                getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
+
+        if (floatingPlayerFragment == null) {
+            floatingPlayerFragment = new FloatingPlayerFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.floatingPlayerContainer, floatingPlayerFragment)
+                    .commitNow();
+        }
+
+        if (floatingPlayerFragment.isAdded()) {
+            floatingPlayerFragment.updatePlayer(songId);
+
+            // Comunicar el cambio al servicio de música
+            if (musicService != null && isServiceBound) {
+                musicService.playSong(songId);
+            } else {
+                Log.e("DetailAlbumActivity", "El servicio de música no está disponible.");
+            }
+        } else {
+            Log.e("DetailAlbumActivity", "FloatingPlayerFragment no está disponible.");
+        }
+    }
 
    private void saveSongToSharedPreferences(String audioUrl, String title, String artist, String albumImageUrl) {
        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
