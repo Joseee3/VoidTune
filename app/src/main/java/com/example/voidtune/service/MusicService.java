@@ -44,6 +44,14 @@ public class MusicService extends Service {
     private String currentSong; // Canción actual
     private int loadAttempts = 0; // Contador de intentos de carga
 
+
+    private List<String> currentPlaylist = new ArrayList<>();
+
+    public List<String> getCurrentPlaylist() {
+        return currentPlaylist;
+    }
+
+
     public class MusicBinder extends Binder {
         public MusicService getService() {
             return MusicService.this;
@@ -502,26 +510,24 @@ public String getCurrentAudioUrl() {
       loadFromSharedPreferences();
 
       if (intent != null) {
-          ArrayList<String> newPlaylist = intent.getStringArrayListExtra("playlist");
           String sourceType = intent.getStringExtra("sourceType");
-          boolean shouldStartPlayback = intent.getBooleanExtra("shouldStartPlayback", false);
-
           if (sourceType != null) {
               this.sourceType = sourceType;
+              Log.d("MusicService", "Tipo de fuente recibido: " + sourceType);
+          } else {
+              Log.e("MusicService", "El tipo de fuente es null.");
           }
 
-          if (newPlaylist != null) {
-              if (isPlaying() && playlist != null && !playlist.isEmpty() && currentAudioUrl != null
-                  && currentAudioUrl.equals(newPlaylist.get(0))) {
-                  Log.d("MusicService", "La canción actual ya está en reproducción. No se reiniciará.");
+          ArrayList<String> newPlaylist = intent.getStringArrayListExtra("playlist");
+          if (newPlaylist != null && !newPlaylist.isEmpty()) {
+              if (this.playlist.isEmpty()) {
+                  this.playlist = newPlaylist;
+                  Log.d("MusicService", "Lista de reproducción configurada con " + newPlaylist.size() + " canciones.");
               } else {
-                  setPlaylist(newPlaylist);
-                  Log.d("MusicService", "Lista de reproducción configurada desde: " + sourceType);
-
-                  if (shouldStartPlayback) {
-                      fetchAndSaveSongData(newPlaylist.get(0));
-                  }
+                  Log.d("MusicService", "Ya hay una lista de reproducción activa. No se sobrescribirá.");
               }
+          } else {
+              Log.e("MusicService", "La nueva lista de reproducción está vacía o es null. No se sobrescribirá la actual.");
           }
       }
 
@@ -538,5 +544,4 @@ public String getCurrentAudioUrl() {
 
       return START_STICKY;
   }
-
 }

@@ -69,6 +69,8 @@ public class DetailPlaylistActivity extends BaseActivity {
 
     private MusicViewModel musicViewModel;
 
+    private List<String> playlist = new ArrayList<>(); // Lista para almacenar los IDs de las canciones de la playlist
+
 
 
     @Override
@@ -200,36 +202,17 @@ public class DetailPlaylistActivity extends BaseActivity {
         songAdapter.setOnSongClickListener(song -> {
             Log.d("SongClick", "Song ID: " + song.getId());
 
-            // Guarda la información de la canción en SharedPreferences
-            saveSongToSharedPreferences(song.getAudioURL(), song.getName(), song.getArtist(), song.getAlbumId());
-            // Actualiza el reproductor flotante
-            updateFloatingPlayer(song.getId());
-
-
-            // Inicia la reproducción de la lista de canciones
-            List<String> songIds = new ArrayList<>();
-            for (Song s : songs) {
-                songIds.add(s.getId());
-            }
-            iniciarReproduccion(songIds, "playlist"); // "playlist" indica que es una lista de reproducción
-
-            if (musicService != null && isServiceBound) { // Verifica que el servicio esté vinculado
-                Log.d("MusicService", "Playing song with URL: " + song.getAudioURL());
-                musicService.playSong(song.getAudioURL()); // Usa el servicio para reproducir la canción
-
-                FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
-                    getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
-
-                if (floatingPlayerFragment != null && floatingPlayerFragment.isAdded()) { // Verifica que el fragmento esté añadido
-                    Log.d("FloatingPlayerFragment", "Updating player with song data.");
-                    floatingPlayerFragment.updatePlayer(song.getId());
-                } else {
-                    Log.e("DetailPlaylistActivity", "FloatingPlayerFragment no está disponible.");
+            if (musicService != null && isServiceBound) {
+                if (!musicService.getCurrentPlaylist().equals(playlist)) {
+                    musicService.setPlaylist(playlist); // Configura la lista de reproducción
                 }
+
+                musicService.playSong(song.getAudioURL()); // Reproduce la canción seleccionada
             } else {
-                Log.e("MusicService", "Music service is not available.");
                 Toast.makeText(this, "Music service is not available.", Toast.LENGTH_SHORT).show();
             }
+
+            updateFloatingPlayer(song.getId());
         });
     }
 
