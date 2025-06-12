@@ -52,6 +52,14 @@ public class MusicService extends Service {
     }
 
 
+// In MusicService.java
+
+
+public List<String> getPlaylist() {
+    return new ArrayList<>(playlist);
+}
+
+
     public class MusicBinder extends Binder {
         public MusicService getService() {
             return MusicService.this;
@@ -266,16 +274,27 @@ public void replaceAndPlaySong(String songId) {
 
 
 
+//    public void setPlaylist(List<String> playlist) {
+//        if (playlist == null || playlist.isEmpty()) {
+//            Log.e("MusicService", "La lista de reproducción está vacía o es null.");
+//            this.playlist = new ArrayList<>();
+//            return;
+//        }
+//        this.playlist = playlist;
+//        currentSongIndex = 0; // Reinicia el índice
+//        Log.d("MusicService", "Lista de reproducción configurada con " + playlist.size() + " canciones.");
+//        // No iniciar reproducción automáticamente
+//    }
+
     public void setPlaylist(List<String> playlist) {
         if (playlist == null || playlist.isEmpty()) {
             Log.e("MusicService", "La lista de reproducción está vacía o es null.");
             this.playlist = new ArrayList<>();
             return;
         }
-        this.playlist = playlist;
-        currentSongIndex = 0; // Reinicia el índice
+        this.playlist = new ArrayList<>(playlist); // Defensive copy
+        currentSongIndex = 0;
         Log.d("MusicService", "Lista de reproducción configurada con " + playlist.size() + " canciones.");
-        // No iniciar reproducción automáticamente
     }
 
     private void fetchAndSaveSongData(String songId) {

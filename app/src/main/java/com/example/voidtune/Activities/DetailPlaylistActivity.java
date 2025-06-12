@@ -52,6 +52,7 @@ import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 public class DetailPlaylistActivity extends BaseActivity {
@@ -84,19 +85,19 @@ public class DetailPlaylistActivity extends BaseActivity {
 
 
 
-        // Inicializar MusicViewModel
-        musicViewModel = new ViewModelProvider(this).get(MusicViewModel.class);
-        // Observar cambios en el ID de la canción actual
-        musicViewModel.getCurrentSongId().observe(this, songId -> {
-            if (songId != null) {
-                updateFloatingPlayer(songId); // Actualiza el reproductor flotante
-            }
-        });
-
-        // Observar el estado de reproducción
-        musicViewModel.getIsPlaying().observe(this, isPlaying -> {
-            // Actualiza la UI según el estado de reproducción
-        });
+//        // Inicializar MusicViewModel
+//        musicViewModel = new ViewModelProvider(this).get(MusicViewModel.class);
+//        // Observar cambios en el ID de la canción actual
+//        musicViewModel.getCurrentSongId().observe(this, songId -> {
+//            if (songId != null) {
+//                updateFloatingPlayer(songId); // Actualiza el reproductor flotante
+//            }
+//        });
+//
+//        // Observar el estado de reproducción
+//        musicViewModel.getIsPlaying().observe(this, isPlaying -> {
+//            // Actualiza la UI según el estado de reproducción
+//        });
 
 
         // Configurar RecyclerView
@@ -199,44 +200,96 @@ public class DetailPlaylistActivity extends BaseActivity {
         });
 
 
-        songAdapter.setOnSongClickListener(song -> {
-            Log.d("SongClick", "Song ID: " + song.getId());
+//        songAdapter.setOnSongClickListener(song -> {
+//            Log.d("SongClick", "Song ID: " + song.getId());
+//
+//            DatabaseReference albumRef = FirebaseDatabase.getInstance()
+//                    .getReference("albums")
+//                    .child(song.getAlbumId());
+//
+//            albumRef.child("imageURL").get().addOnCompleteListener(task -> {
+//                String albumImageUrl = null;
+//                if (task.isSuccessful() && task.getResult() != null) {
+//                    albumImageUrl = task.getResult().getValue(String.class);
+//                }
+//
+//                // Save all song data for the floating player
+//                SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+//                SharedPreferences.Editor editor = sharedPreferences.edit();
+//                ArrayList<String> playlistIds = new ArrayList<>();
+//                for (Song s : songs) playlistIds.add(s.getId());
+//                editor.putStringSet("playlist", new HashSet<>(playlistIds));
+//                editor.putString("currentAudioUrl", song.getAudioURL());
+//                editor.putString("title", song.getName());
+//                editor.putString("artist", song.getArtist());
+//                editor.putString("albumImageUrl", albumImageUrl);
+//                editor.apply();
+//
+//                // Start playback
+//                if (musicService != null && isServiceBound) {
+//                    musicService.replaceAndPlaySong(song.getId(), playlistIds);
+//                } else {
+//                    Toast.makeText(this, "El servicio de música no está disponible.", Toast.LENGTH_SHORT).show();
+//                }
+//
+//                // Update the floating player (it will read from SharedPreferences)
+//                loadFloatingPlayer();
+//            });
+//        });
 
-            DatabaseReference albumRef = FirebaseDatabase.getInstance()
-                    .getReference("albums")
-                    .child(song.getAlbumId()); // Obtener el ID del álbum desde la canción
+       songAdapter.setOnSongClickListener(song -> {
+           String albumId = song.getAlbumId();
+           DatabaseReference albumRef = FirebaseDatabase.getInstance()
+               .getReference("albums")
+               .child(albumId);
 
-            albumRef.child("imageURL").get().addOnCompleteListener(task -> {
-                if (task.isSuccessful() && task.getResult() != null) {
-                    String albumImageUrl = task.getResult().getValue(String.class);
+           albumRef.get().addOnCompleteListener(task -> {
+               String albumImageUrl = "";
+               String albumName = "";
+               String albumArtist = "";
+               if (task.isSuccessful() && task.getResult() != null) {
+                   DataSnapshot albumSnapshot = task.getResult();
+                   albumImageUrl = albumSnapshot.child("imageURL").getValue(String.class);
+                   albumName = albumSnapshot.child("name").getValue(String.class);
+                   albumArtist = albumSnapshot.child("artist").getValue(String.class);
+               }
 
-                    // Guardar la información de la canción en SharedPreferences
-                    SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-                    SharedPreferences.Editor editor = sharedPreferences.edit();
-                    editor.putString("currentAudioUrl", song.getAudioURL());
-                    editor.putString("title", song.getName());
-                    editor.putString("artist", song.getArtist());
-                    editor.putString("albumImageUrl", albumImageUrl); // Guardar la URL de la imagen del álbum
-                    editor.apply();
+               // Save all song and album data for the floating player
+              // Save all song and album data for the floating player
+              SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+              SharedPreferences.Editor editor = sharedPreferences.edit();
+              ArrayList<String> playlistIds = new ArrayList<>();
+              for (Song s : songs) playlistIds.add(s.getId());
+              editor.putStringSet("playlist", new HashSet<>(playlistIds));
+              editor.putString("currentAudioUrl", song.getAudioURL());
+              editor.putString("title", song.getName());
+              editor.putString("artist", song.getArtist());
+              editor.putString("albumImageUrl", albumImageUrl != null ? albumImageUrl : "");
+              editor.putString("albumName", albumName != null ? albumName : "");
+              editor.putString("albumArtist", albumArtist != null ? albumArtist : "");
+              editor.apply();
 
-                    Log.d("SongClick", "Datos de la canción guardados en SharedPreferences con imagen del álbum.");
-                } else {
-                    Log.e("SongClick", "No se pudo obtener la imagen del álbum: " + task.getException());
-                }
-            });
+               // After editor.apply();
+               // After saving to SharedPreferences
+               FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+                   getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
 
-            Log.d("SongClick", "Datos de la canción guardados en SharedPreferences.");
+               if (floatingPlayerFragment != null && floatingPlayerFragment.isAdded()) {
+                   floatingPlayerFragment.updatePlayer(song.getAudioURL());
+                   floatingPlayerFragment.updateAlbumImage(albumImageUrl);
+                   findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
+               }
 
-            // Iniciar la reproducción desde SharedPreferences
-            if (musicService != null && isServiceBound) {
-                musicService.playSong(song.getAudioURL());
-            } else {
-                Toast.makeText(this, "El servicio de música no está disponible.", Toast.LENGTH_SHORT).show();
-            }
+               // Start playback
+               if (musicService != null && isServiceBound) {
+                   musicService.replaceAndPlaySong(song.getId(), playlistIds);
+               } else {
+                   Toast.makeText(DetailPlaylistActivity.this, "El servicio de música no está disponible.", Toast.LENGTH_SHORT).show();
+               }
 
-            // Actualizar el reproductor flotante
-            updateFloatingPlayer(song.getId());
-        });
+               updateFloatingPlayer(song.getId());
+           });
+       });
     }
 
 
@@ -492,31 +545,32 @@ public class DetailPlaylistActivity extends BaseActivity {
         }
     };
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        // Vincula el servicio de música
-        Intent intent = new Intent(this, MusicService.class);
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+@Override
+protected void onStart() {
+    super.onStart();
+    Intent intent = new Intent(this, MusicService.class);
+    bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
 
-        // Restaura el estado del reproductor desde SharedPreferences
-        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-        currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
-        int savedPosition = sharedPreferences.getInt("currentPosition", 0);
-        boolean isPlaying = sharedPreferences.getBoolean("isPlaying", false);
+    SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+    currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+    int savedPosition = sharedPreferences.getInt("currentPosition", 0);
+    boolean isPlaying = sharedPreferences.getBoolean("isPlaying", false);
+    // Recupera la playlist
+    List<String> playlist = new ArrayList<>(sharedPreferences.getStringSet("playlist", new HashSet<>()));
 
-        if (isServiceBound && musicService != null && currentAudioUrl != null) {
-            musicService.restoreState(); // Sin argumentos
-            if (isPlaying) {
-                musicService.pauseSong();
-            } else {
-                musicService.pauseSong();
-            }
+    if (isServiceBound && musicService != null && currentAudioUrl != null) {
+        musicService.restoreState();
+        musicService.setPlaylist(playlist); // Asegúrate de que tu servicio tenga este método
+        musicService.seekTo(savedPosition);
+        if (isPlaying) {
+            musicService.playSong(currentAudioUrl);
+        } else {
+            musicService.pauseSong();
         }
-
-        // Asegúrate de que el reproductor flotante esté visible
-        loadFloatingPlayer();
     }
+
+    loadFloatingPlayer();
+}
 
     @Override
     protected void onStop() {
@@ -593,41 +647,70 @@ public class DetailPlaylistActivity extends BaseActivity {
 
     public void updateFloatingPlayer(String songId) {
         if (songId == null || songId.isEmpty()) {
-            Log.e("DetailAlbumActivity", "El songId es nulo o vacío. No se puede actualizar el reproductor.");
+            Log.e("DetailAlbumActivity", "songId is null or empty. Cannot update player.");
             return;
         }
 
-        currentAudioUrl = songId;
+        FirebaseDatabase.getInstance().getReference("songs").child(songId)
+            .get()
+            .addOnCompleteListener(task -> {
+                if (task.isSuccessful() && task.getResult() != null) {
+                    DataSnapshot songSnapshot = task.getResult();
+                    String audioUrl = songSnapshot.child("audioURL").getValue(String.class);
+                    String title = songSnapshot.child("name").getValue(String.class);
+                    String artist = songSnapshot.child("artist").getValue(String.class);
+                    String albumId = songSnapshot.child("albumID").getValue(String.class);
 
-        // Guardar la nueva canción en SharedPreferences
-        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("currentAudioUrl", currentAudioUrl);
-        editor.apply();
-        Log.d("DetailAlbumActivity", "Nueva canción guardada en SharedPreferences: " + currentAudioUrl);
+                    if (albumId != null) {
+                        FirebaseDatabase.getInstance().getReference("albums").child(albumId)
+                            .get()
+                            .addOnCompleteListener(albumTask -> {
+                                String albumImageUrl = "";
+                                String albumName = "";
+                                String albumArtist = "";
+                                if (albumTask.isSuccessful() && albumTask.getResult() != null) {
+                                    DataSnapshot albumSnapshot = albumTask.getResult();
+                                    albumImageUrl = albumSnapshot.child("imageURL").getValue(String.class);
+                                    albumName = albumSnapshot.child("name").getValue(String.class);
+                                    albumArtist = albumSnapshot.child("artist").getValue(String.class);
+                                }
 
-        FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
-                getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
+                                // Recupera la playlist actual de SharedPreferences
+                                SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+                                HashSet<String> playlistSet = new HashSet<>(sharedPreferences.getStringSet("playlist", new HashSet<>()));
 
-        if (floatingPlayerFragment == null) {
-            floatingPlayerFragment = new FloatingPlayerFragment();
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.floatingPlayerContainer, floatingPlayerFragment)
-                    .commitNow();
-        }
+                                SharedPreferences.Editor editor = sharedPreferences.edit();
+                                editor.putStringSet("playlist", playlistSet);
+                                editor.putString("currentAudioUrl", audioUrl);
+                                editor.putString("title", title);
+                                editor.putString("artist", artist);
+                                editor.putString("albumImageUrl", albumImageUrl != null ? albumImageUrl : "");
+                                editor.putString("albumName", albumName != null ? albumName : "");
+                                editor.putString("albumArtist", albumArtist != null ? albumArtist : "");
+                                editor.apply();
 
-        if (floatingPlayerFragment.isAdded()) {
-            floatingPlayerFragment.updatePlayer(songId);
+                                FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+                                        getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
 
-            // Comunicar el cambio al servicio de música
-            if (musicService != null && isServiceBound) {
-                musicService.playSong(songId);
-            } else {
-                Log.e("DetailAlbumActivity", "El servicio de música no está disponible.");
-            }
-        } else {
-            Log.e("DetailAlbumActivity", "FloatingPlayerFragment no está disponible.");
-        }
+                                if (floatingPlayerFragment == null) {
+                                    floatingPlayerFragment = new FloatingPlayerFragment();
+                                    getSupportFragmentManager().beginTransaction()
+                                            .replace(R.id.floatingPlayerContainer, floatingPlayerFragment)
+                                            .commitNow();
+                                }
+
+                                if (floatingPlayerFragment.isAdded()) {
+                                    floatingPlayerFragment.updatePlayer(audioUrl);
+                                    floatingPlayerFragment.updateAlbumImage(albumImageUrl);
+                                    findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
+                                    if (musicService != null && isServiceBound) {
+                                        musicService.playSong(audioUrl);
+                                    }
+                                }
+                            });
+                    }
+                }
+            });
     }
 
    private void saveSongToSharedPreferences(String audioUrl, String title, String artist, String albumImageUrl) {

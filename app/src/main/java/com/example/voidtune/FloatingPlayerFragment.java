@@ -513,6 +513,20 @@ public void onPause() {
     super.onPause();
     LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(playerUpdateReceiver);
 }
+
+// In FloatingPlayerFragment.java
+public void updateAlbumImage(String imageUrl) {
+    ImageView albumImageView = getView().findViewById(R.id.AlbumImage);
+    if (imageUrl != null && !imageUrl.isEmpty()) {
+        Glide.with(getContext())
+                .load(imageUrl)
+                .placeholder(R.drawable.img_album)
+                .into(albumImageView);
+    } else {
+        albumImageView.setImageResource(R.drawable.img_album);
+    }
+}
+
 public void updatePlayerUI(String title, String artist, String albumImageUrl) {
     if (songTitle != null) {
         songTitle.setText(title);
