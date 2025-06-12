@@ -202,16 +202,39 @@ public class DetailPlaylistActivity extends BaseActivity {
         songAdapter.setOnSongClickListener(song -> {
             Log.d("SongClick", "Song ID: " + song.getId());
 
-            if (musicService != null && isServiceBound) {
-                if (!musicService.getCurrentPlaylist().equals(playlist)) {
-                    musicService.setPlaylist(playlist); // Configura la lista de reproducción
-                }
+            DatabaseReference albumRef = FirebaseDatabase.getInstance()
+                    .getReference("albums")
+                    .child(song.getAlbumId()); // Obtener el ID del álbum desde la canción
 
-                musicService.playSong(song.getAudioURL()); // Reproduce la canción seleccionada
+            albumRef.child("imageURL").get().addOnCompleteListener(task -> {
+                if (task.isSuccessful() && task.getResult() != null) {
+                    String albumImageUrl = task.getResult().getValue(String.class);
+
+                    // Guardar la información de la canción en SharedPreferences
+                    SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putString("currentAudioUrl", song.getAudioURL());
+                    editor.putString("title", song.getName());
+                    editor.putString("artist", song.getArtist());
+                    editor.putString("albumImageUrl", albumImageUrl); // Guardar la URL de la imagen del álbum
+                    editor.apply();
+
+                    Log.d("SongClick", "Datos de la canción guardados en SharedPreferences con imagen del álbum.");
+                } else {
+                    Log.e("SongClick", "No se pudo obtener la imagen del álbum: " + task.getException());
+                }
+            });
+
+            Log.d("SongClick", "Datos de la canción guardados en SharedPreferences.");
+
+            // Iniciar la reproducción desde SharedPreferences
+            if (musicService != null && isServiceBound) {
+                musicService.playSong(song.getAudioURL());
             } else {
-                Toast.makeText(this, "Music service is not available.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "El servicio de música no está disponible.", Toast.LENGTH_SHORT).show();
             }
 
+            // Actualizar el reproductor flotante
             updateFloatingPlayer(song.getId());
         });
     }

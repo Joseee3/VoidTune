@@ -151,7 +151,98 @@ public class MusicService extends Service {
         Log.d("MusicService", "MediaPlayer configurado con la URL: " + audioUrl);
     } catch (IOException e) {
         Log.e("MusicService", "Error al configurar el MediaPlayer: " + e.getMessage());
+
     }
+}
+
+public void replaceAndPlaySong(String songId, List<String> newPlaylist) {
+    if (songId == null || songId.isEmpty()) {
+        Log.e("MusicService", "El ID de la canción es inválido.");
+        return;
+    }
+
+    if (newPlaylist == null || newPlaylist.isEmpty()) {
+        Log.e("MusicService", "La nueva lista de reproducción está vacía o es null.");
+        return;
+    }
+
+    Log.d("MusicService", "Reemplazando la lista de reproducción y reproduciendo canción con ID: " + songId);
+
+    // Actualizar la lista de reproducción
+    playlist.clear();
+    playlist.addAll(newPlaylist);
+    currentSongIndex = playlist.indexOf(songId);
+
+    if (currentSongIndex == -1) {
+        Log.e("MusicService", "El ID de la canción no se encuentra en la nueva lista de reproducción.");
+        return;
+    }
+
+    // Obtener los datos de la canción desde Firebase
+    DatabaseReference songRef = FirebaseDatabase.getInstance().getReference("songs").child(songId);
+    songRef.get().addOnCompleteListener(task -> {
+        if (task.isSuccessful() && task.getResult() != null) {
+            DataSnapshot snapshot = task.getResult();
+            String title = snapshot.child("name").getValue(String.class);
+            String artist = snapshot.child("artist").getValue(String.class);
+            String audioUrl = snapshot.child("audioURL").getValue(String.class);
+            String albumId = snapshot.child("albumID").getValue(String.class);
+
+            if (audioUrl == null || audioUrl.isEmpty()) {
+                Log.e("MusicService", "URL de audio no válida. Intentando cargar desde SharedPreferences.");
+                loadFromSharedPreferences();
+                if (currentAudioUrl != null && !currentAudioUrl.isEmpty()) {
+                    playSong(currentAudioUrl);
+                } else {
+                    Log.e("MusicService", "No se pudo cargar una URL válida.");
+                }
+                return;
+            }
+
+            Log.d("MusicService", "Datos recuperados: " + title + ", " + artist + ", " + audioUrl);
+
+            // Guardar y reproducir
+            playSongWithDetails(title, artist, audioUrl, null);
+        } else {
+            Log.e("MusicService", "Error al obtener datos de la canción: " + task.getException());
+        }
+    }).addOnFailureListener(e -> {
+        Log.e("MusicService", "Error al recuperar datos de Firebase: " + e.getMessage());
+    });
+}
+
+public void replaceAndPlaySong(String songId) {
+    if (songId == null || songId.isEmpty()) {
+        Log.e("MusicService", "El ID de la canción es inválido.");
+        return;
+    }
+
+    Log.d("MusicService", "Reemplazando y reproduciendo canción con ID: " + songId);
+
+    DatabaseReference songRef = FirebaseDatabase.getInstance().getReference("songs").child(songId);
+    songRef.get().addOnCompleteListener(task -> {
+        if (task.isSuccessful() && task.getResult() != null) {
+            DataSnapshot snapshot = task.getResult();
+            String title = snapshot.child("name").getValue(String.class);
+            String artist = snapshot.child("artist").getValue(String.class);
+            String audioUrl = snapshot.child("audioURL").getValue(String.class);
+            String albumId = snapshot.child("albumID").getValue(String.class);
+
+            if (audioUrl == null || audioUrl.isEmpty()) {
+                Log.e("MusicService", "URL de audio no válida para la canción con ID: " + songId);
+                return;
+            }
+
+            Log.d("MusicService", "Datos recuperados: " + title + ", " + artist + ", " + audioUrl);
+
+            // Configura y reproduce la canción
+            playSongWithDetails(title, artist, audioUrl, null);
+        } else {
+            Log.e("MusicService", "Error al obtener datos de la canción: " + task.getException());
+        }
+    }).addOnFailureListener(e -> {
+        Log.e("MusicService", "Error al recuperar datos de Firebase: " + e.getMessage());
+    });
 }
     public void saveState() {
         if (mediaPlayer != null) {

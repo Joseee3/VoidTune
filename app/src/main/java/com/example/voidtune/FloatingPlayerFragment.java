@@ -513,7 +513,7 @@ public void onPause() {
     super.onPause();
     LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(playerUpdateReceiver);
 }
-private void updatePlayerUI(String title, String artist, String albumImageUrl) {
+public void updatePlayerUI(String title, String artist, String albumImageUrl) {
     if (songTitle != null) {
         songTitle.setText(title);
     }

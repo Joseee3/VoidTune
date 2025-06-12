@@ -26,6 +26,7 @@ import com.example.voidtune.entities.Song;
 import com.example.voidtune.service.MusicService;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
@@ -77,6 +78,13 @@ protected void onStart() {
     Intent intent = new Intent(this, MusicService.class);
     bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
 
+    // Verifica si el servicio ya está reproduciendo
+    if (isServiceBound && musicService != null && musicService.isPlaying()) {
+        Log.d("DetailAlbumActivity", "El servicio ya está reproduciendo. No se restaurará el estado.");
+        loadFloatingPlayer();
+        return;
+    }
+
     // Restaura el estado del reproductor desde SharedPreferences
     SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
     currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
@@ -86,8 +94,10 @@ protected void onStart() {
     if (isServiceBound && musicService != null && currentAudioUrl != null) {
         musicService.restoreState(); // Sin argumentos
         if (isPlaying) {
-            musicService.pauseSong();
+            musicService.seekTo(savedPosition);
+            musicService.playSong(currentAudioUrl);
         } else {
+            musicService.seekTo(savedPosition);
             musicService.pauseSong();
         }
     }
@@ -148,15 +158,56 @@ protected void onStop() {
         recyclerView.setAdapter(songAdapter);
 
         // Configurar listener de clics en canciones
-        songAdapter.setOnSongClickListener(song -> {
+       songAdapter.setOnSongClickListener(song -> {
             Log.d("SongClick", "Song ID: " + song.getId());
-            updateFloatingPlayer(song.getId());
 
-            if (musicService != null && isServiceBound) {
-                musicService.playSong(song.getAudioURL());
-            } else {
-                Toast.makeText(this, "Music service is not available.", Toast.LENGTH_SHORT).show();
+            // Usa el albumId directamente desde el Intent
+            String albumId = getIntent().getStringExtra("albumId");
+            if (albumId == null || albumId.isEmpty()) {
+                Log.e("SongClick", "El albumId es nulo o vacío. No se puede continuar.");
+                Toast.makeText(this, "No se pudo cargar la información del álbum.", Toast.LENGTH_SHORT).show();
+                return;
             }
+
+            // Actualiza el albumId en SharedPreferences
+           // Actualiza el albumId en SharedPreferences
+           SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+           SharedPreferences.Editor editor = sharedPreferences.edit();
+           editor.putStringSet("playlist", new HashSet<>(playlist)); // Guarda la nueva lista
+           editor.putString("currentAudioUrl", song.getAudioURL()); // Guarda la URL de la canción actual
+           editor.apply();
+
+            // Obtener la referencia del álbum desde Firebase
+            DatabaseReference albumRef = FirebaseDatabase.getInstance()
+                    .getReference("albums")
+                    .child(albumId);
+
+            albumRef.child("imageURL").get().addOnCompleteListener(task -> {
+                if (task.isSuccessful() && task.getResult() != null) {
+                    String albumImageUrl = task.getResult().getValue(String.class);
+
+                    // Guardar la información de la canción en SharedPreferences
+                    editor.putString("currentAudioUrl", song.getAudioURL());
+                    editor.putString("title", song.getName());
+                    editor.putString("artist", song.getArtist());
+                    editor.putString("albumImageUrl", albumImageUrl); // Guardar la URL de la imagen del álbum
+                    editor.apply();
+
+                    Log.d("SongClick", "Datos de la canción guardados en SharedPreferences con imagen del álbum.");
+                } else {
+                    Log.e("SongClick", "No se pudo obtener la imagen del álbum: " + task.getException());
+                }
+            });
+
+            // Iniciar la reproducción desde SharedPreferences
+            if (musicService != null && isServiceBound) {
+                musicService.replaceAndPlaySong(song.getId(), playlist); // Reemplaza la lista y reproduce
+            } else {
+                Toast.makeText(this, "El servicio de música no está disponible.", Toast.LENGTH_SHORT).show();
+            }
+
+            // Actualizar el reproductor flotante
+            updateFloatingPlayer(song.getId());
         });
 
         // Recuperar datos del Intent
@@ -180,14 +231,20 @@ protected void onStop() {
         playlist = new ArrayList<>();
 
         FirebaseDatabase.getInstance().getReference("albums").child(albumId).child("songs")
-            .get()
-            .addOnCompleteListener(task -> {
-                if (task.isSuccessful() && task.getResult() != null) {
-                    playlist.clear(); // Limpia la lista anterior
-                    for (DataSnapshot songSnapshot : task.getResult().getChildren()) {
-                        String songId = songSnapshot.getValue(String.class);
-                        if (songId != null) {
-                            playlist.add(songId); // Agrega las canciones a la nueva lista
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        // Recupera la lista de reproducción existente
+                        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+                        HashSet<String> existingPlaylistSet = (HashSet<String>) sharedPreferences.getStringSet("playlist", new HashSet<>());
+                        ArrayList<String> existingPlaylist = new ArrayList<>(existingPlaylistSet);
+
+                        playlist.clear(); // Limpia la lista temporal
+                        for (DataSnapshot songSnapshot : task.getResult().getChildren()) {
+                            String songId = songSnapshot.getValue(String.class);
+                            if (songId != null && !existingPlaylist.contains(songId)) {
+                                playlist.add(songId); // Agrega solo canciones nuevas
+                            }
 
                             FirebaseDatabase.getInstance().getReference("songs").child(songId)
                                 .get()
@@ -202,28 +259,29 @@ protected void onStop() {
                                     }
                                 });
                         }
-                    }
 
-                    // Guarda la nueva lista de reproducción en SharedPreferences
-                    SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-                    SharedPreferences.Editor editor = sharedPreferences.edit();
-                    editor.putString("sourceType", "album");
-                    editor.putString("currentAlbumId", albumId);
-                    editor.putStringSet("playlist", new HashSet<>(playlist)); // Guarda la lista como un Set
-                    editor.apply();
+                        // Combina la lista existente con la nueva
+                        existingPlaylist.addAll(playlist);
 
-                    // Actualiza el servicio de música con la nueva lista
-                    if (!playlist.isEmpty()) {
-                        Intent intent = new Intent(this, MusicService.class);
-                        intent.putStringArrayListExtra("playlist", playlist);
-                        intent.putExtra("sourceType", "album");
-                        intent.putExtra("shouldStartPlayback", false);
-                        startService(intent);
+                        // Guarda la lista combinada en SharedPreferences
+                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                        editor.putString("sourceType", "album");
+                        editor.putString("currentAlbumId", albumId);
+                        editor.putStringSet("playlist", new HashSet<>(existingPlaylist)); // Guarda la lista combinada
+                        editor.apply();
+
+                        // Actualiza el servicio de música con la lista combinada
+                        if (!existingPlaylist.isEmpty()) {
+                            Intent intent = new Intent(this, MusicService.class);
+                            intent.putStringArrayListExtra("playlist", existingPlaylist);
+                            intent.putExtra("sourceType", "album");
+                            intent.putExtra("shouldStartPlayback", false);
+                            startService(intent);
+                        }
+                    } else {
+                        Log.e("Firebase", "Error al cargar canciones: " + task.getException().getMessage());
                     }
-                } else {
-                    Log.e("Firebase", "Error al cargar canciones: " + task.getException().getMessage());
-                }
-            });
+                });
     }
 
    public void updateFloatingPlayer(String songId) {
@@ -254,9 +312,9 @@ protected void onStop() {
         if (floatingPlayerFragment.isAdded()) {
             floatingPlayerFragment.updatePlayer(songId);
 
-            // Comunicar el cambio al servicio de música
+            // Llamar a replaceAndPlaySong para cargar y reproducir la canción
             if (musicService != null && isServiceBound) {
-                musicService.playSong(songId);
+                musicService.replaceAndPlaySong(songId);
             } else {
                 Log.e("DetailAlbumActivity", "El servicio de música no está disponible.");
             }
