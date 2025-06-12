@@ -120,6 +120,10 @@ public class LibraryActivity extends BaseActivity {
                 editor.clear();
                 editor.apply();
 
+                // Clear FloatingPlayerCache on logout
+                sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+                sharedPreferences.edit().clear().apply();
+
                 // Redirigir al inicio de sesión
                 Intent intent = new Intent(this, Login.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
