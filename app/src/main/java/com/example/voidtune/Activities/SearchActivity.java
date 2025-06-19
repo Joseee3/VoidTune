@@ -169,10 +169,9 @@ public class SearchActivity extends AppCompatActivity {
                             Intent intent = new Intent(SearchActivity.this, MusicService.class);
                             intent.putExtra("audioUrl", selectedSong.getAudioURL());
                             intent.putExtra("sourceType", "search");
-                            ContextCompat.startForegroundService(SearchActivity.this, intent);
-                            bindService(intent, serviceConnection, BIND_AUTO_CREATE);
+                            startService(intent);
                         }
-                        //updateFloatingPlayer(selectedSong.getId());
+                        updateFloatingPlayer(selectedSong.getId());
                     });
             });
     }
