@@ -124,20 +124,26 @@ public class DetailPlaylistActivity extends BaseActivity {
 
         String playlistName = getIntent().getStringExtra("playlistName");
         String playlistImage = getIntent().getStringExtra("playlistImage");
+
+        ImageView moreOptionsButton = findViewById(R.id.moreOptionsButton);
         String type = getIntent().getStringExtra("type");
+
 
         if ("likeSong".equals(type)) {
 
             titleTextView.setText("Tus me gusta");
-
+            setContentView(R.layout.detail_likesong);
 
             playlistImageView.setImageResource(R.drawable.likesong);
             loadPlaylistSongs("likeSong");
 
 
 
+
         } else if ("playlist".equals(type)) {
             titleTextView.setText(playlistName != null ? playlistName : "Playlist sin nombre");
+            moreOptionsButton.setVisibility(View.VISIBLE); // Show for playlists
+
             if (playlistImage != null && !playlistImage.isEmpty()) {
                 Glide.with(this)
                     .load(playlistImage)
@@ -151,7 +157,7 @@ public class DetailPlaylistActivity extends BaseActivity {
 
 
 
-        ImageView moreOptionsButton = findViewById(R.id.moreOptionsButton);
+         moreOptionsButton = findViewById(R.id.moreOptionsButton);
         moreOptionsButton.setOnClickListener(v -> {
             PlaylistOptionsBottomSheet bottomSheet = new PlaylistOptionsBottomSheet();
             bottomSheet.setOnOptionSelectedListener(new PlaylistOptionsBottomSheet.OnOptionSelectedListener() {
@@ -190,6 +196,7 @@ public class DetailPlaylistActivity extends BaseActivity {
                     return true;
                 } else if (itemId == R.id.menu_search) {
                     // Acción para el menú Search
+                    startActivity(new Intent(DetailPlaylistActivity.this, SearchActivity.class));
                     return true;
                 } else if (itemId == R.id.menu_library) {
                     startActivity(new Intent(DetailPlaylistActivity.this, LibraryActivity.class));
@@ -238,7 +245,7 @@ public class DetailPlaylistActivity extends BaseActivity {
 //        });
 
        songAdapter.setOnSongClickListener(song -> {
-           String albumId = song.getAlbumId();
+           String albumId = song.getAlbumID();
            DatabaseReference albumRef = FirebaseDatabase.getInstance()
                .getReference("albums")
                .child(albumId);
@@ -352,7 +359,7 @@ public class DetailPlaylistActivity extends BaseActivity {
                     if (song != null) {
                         song.setId(songId); // Asigna el ID al objeto Song
                         if (task.getResult().hasChild("albumID")) {
-                            song.setAlbumId(task.getResult().child("albumID").getValue(String.class)); // Asigna el albumId
+                            song.setAlbumID(task.getResult().child("albumID").getValue(String.class)); // Asigna el albumId
                         }
                         songs.add(song); // Agregar la canción a la lista
                         songAdapter.notifyItemInserted(songs.size() - 1); // Actualizar adaptador

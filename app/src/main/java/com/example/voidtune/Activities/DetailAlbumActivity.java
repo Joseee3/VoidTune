@@ -78,6 +78,7 @@ protected void onStart() {
     Intent intent = new Intent(this, MusicService.class);
     bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
 
+
     // Verifica si el servicio ya está reproduciendo
     if (isServiceBound && musicService != null && musicService.isPlaying()) {
         Log.d("DetailAlbumActivity", "El servicio ya está reproduciendo. No se restaurará el estado.");

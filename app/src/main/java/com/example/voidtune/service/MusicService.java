@@ -18,6 +18,7 @@ import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.example.voidtune.R;
+import com.example.voidtune.Utils.SongOfflineUtils;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -363,6 +364,7 @@ public void replaceAndPlaySong(String songId) {
         // Reproducir la nueva canción
         if (audioUrl != null && !audioUrl.isEmpty()) {
             playSong(audioUrl);
+            //SongOfflineUtils.playCurrentSong(this, title + ".mp3", audioUrl);
         } else {
             Log.e("MusicService", "URL de audio no válida. No se puede reproducir la canción.");
             playNextSong(); // Intenta reproducir la siguiente canción

@@ -189,6 +189,7 @@ public class MainActivity extends BaseActivity {
                     return true;
                 } else if (itemId == R.id.menu_search) {
                     // Acción para el menú Search
+                    startActivity(new Intent(MainActivity.this, SearchActivity.class));
                     return true;
                 } else if (itemId == R.id.menu_library) {
                     startActivity(new Intent(MainActivity.this, LibraryActivity.class));
@@ -205,6 +206,7 @@ public class MainActivity extends BaseActivity {
         cargarListasDinamicas();
 
         cargarLibraryItemsDesdeFirebase();
+
 
     }
 

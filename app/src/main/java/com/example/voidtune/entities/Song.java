@@ -10,7 +10,7 @@ public class Song  {
     private String genero;
     private String id;
     public String audioURL;
-    private String albumId;
+    private String albumID;
 
     // Constructor vacío requerido por Firebase
     public Song() {
@@ -30,7 +30,7 @@ public class Song  {
         this.duracion = duracion;
         this.genero = genero;
         this.id = id;
-        this.albumId = albumId;
+        this.albumID = albumId;
     }
 
     public Song(String id, String name, String artist) {
@@ -42,7 +42,7 @@ public class Song  {
  // Constructor con parámetros (corregido)
  public Song(String songID, String albumID, String artist, String audioURL, String duration, String name, boolean isFull) {
      this.id = songID;
-     this.albumId = albumID;
+     this.albumID = albumID;
      this.artist = artist;
      this.audioURL = audioURL;
      this.duracion = duration;
@@ -94,12 +94,12 @@ public class Song  {
         this.id = id;
     }
 
-    public String getAlbumId() {
-        return albumId;
+    public String getAlbumID() {
+        return albumID;
     }
 
-    public void setAlbumId(String albumId) {
-        this.albumId = albumId;
+    public void setAlbumID(String albumId) {
+        this.albumID = albumId;
     }
 
     public String getAudioURL() {
