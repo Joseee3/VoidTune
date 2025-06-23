@@ -15,10 +15,13 @@ import android.util.Log;
 import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.example.voidtune.R;
 import com.example.voidtune.Utils.SongOfflineUtils;
+import com.example.voidtune.entities.Song;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -54,6 +57,35 @@ public class MusicService extends Service {
 
 
 // In MusicService.java
+
+    // In MusicViewModel.java
+
+
+        private MutableLiveData<List<Song>> filteredSongs = new MutableLiveData<>();
+        private List<Song> allSongs = new ArrayList<>();
+
+        public void setAllSongs(List<Song> songs) {
+            allSongs = songs;
+            filteredSongs.setValue(songs);
+        }
+
+        public LiveData<List<Song>> getFilteredSongs() {
+            return filteredSongs;
+        }
+
+        public void searchSongs(String query) {
+            List<Song> filtered = new ArrayList<>();
+            for (Song song : allSongs) {
+                if (song.getName().toLowerCase().contains(query.toLowerCase())) {
+                    filtered.add(song);
+                }
+            }
+            filteredSongs.setValue(filtered);
+        }
+
+        public void loadAllSongs() {
+            filteredSongs.setValue(allSongs);
+        }
 
 
 public List<String> getPlaylist() {

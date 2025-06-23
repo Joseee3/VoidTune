@@ -15,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.appcompat.widget.SearchView;
@@ -46,6 +47,10 @@ public class SearchActivity extends AppCompatActivity {
     private boolean isServiceBound = false;
 
     public SearchAdapter searchAdapter;
+
+    private String lastTitle = "";
+    private String lastArtist = "";
+    private String lastAlbumImageUrl = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,7 +110,7 @@ public class SearchActivity extends AppCompatActivity {
                 if (!query.isEmpty()) {
                     musicViewModel.searchSongs(query);
                 } else {
-                    songAdapter.setSongs(new ArrayList<>()); // Clear list
+                    musicViewModel.loadAllSongs(); // Show all songs when empty
                 }
                 return true;
             }
@@ -115,12 +120,11 @@ public class SearchActivity extends AppCompatActivity {
                 if (!newText.isEmpty()) {
                     musicViewModel.searchSongs(newText);
                 } else {
-                    songAdapter.setSongs(new ArrayList<>()); // Clear list
+                    musicViewModel.loadAllSongs(); // Show all songs when empty
                 }
                 return true;
             }
         });
-
 
             songAdapter.setOnSongClickListener(selectedSong -> {
                 String albumId = selectedSong.getAlbumID() != null ? selectedSong.getAlbumID() : "";
@@ -141,6 +145,8 @@ public class SearchActivity extends AppCompatActivity {
                         }
 
                         // Save all song and album data for the floating player
+                        // 1. Update SharedPreferences first
+                        // 1. Update SharedPreferences first
                         SharedPreferences prefs = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
                         SharedPreferences.Editor editor = prefs.edit();
                         editor.putString("currentAudioUrl", selectedSong.getAudioURL());
@@ -151,27 +157,58 @@ public class SearchActivity extends AppCompatActivity {
                         editor.putString("albumArtist", albumArtist != null ? albumArtist : "");
                         editor.apply();
 
-                        // Always replace and commit the fragment immediately
-                        // Actualiza el fragmento del reproductor flotante
-                        FloatingPlayerFragment floatingPlayerFragment = new FloatingPlayerFragment();
-                        getSupportFragmentManager().beginTransaction()
-                                .replace(R.id.floatingPlayerContainer, floatingPlayerFragment)
-                                .commitNow();
+//                        FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+//                                getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
+//
+//                        if (floatingPlayerFragment != null && floatingPlayerFragment.isAdded()) {
+//                            floatingPlayerFragment.updatePlayerUI(
+//                                selectedSong.getAudioURL(),
+//                                selectedSong.getName(),
+//                                selectedSong.getArtist(),
+//                                albumImageUrl != null ? albumImageUrl : ""
+//                            );
+//                            findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
+//                        }
 
-                        floatingPlayerFragment.updatePlayer(selectedSong.getAudioURL());
-                        floatingPlayerFragment.updateAlbumImage(albumImageUrl);
-                        findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
+                        // Después de editor.apply();
+                        Intent intent = new Intent("com.example.voidtune.UPDATE_PLAYER");
+                        intent.putExtra("title", selectedSong.getName());
+                        intent.putExtra("artist", selectedSong.getArtist());
+                        intent.putExtra("albumImageUrl", albumImageUrl != null ? albumImageUrl : "");
+                        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
 
-                        // Start playback logic
+                        lastTitle = selectedSong.getName();
+                        lastArtist = selectedSong.getArtist();
+                        lastAlbumImageUrl = albumImageUrl != null ? albumImageUrl : "";
+
+                        loadFloatingPlayer();
+
                         if (musicService != null && isServiceBound) {
                             musicService.playSong(selectedSong.getAudioURL());
                         } else {
-                            Intent intent = new Intent(SearchActivity.this, MusicService.class);
+                            intent = new Intent(this, MusicService.class);
                             intent.putExtra("audioUrl", selectedSong.getAudioURL());
-                            intent.putExtra("sourceType", "search");
+                            intent.putExtra("sourceType", "playlist");
                             startService(intent);
                         }
-                        updateFloatingPlayer(selectedSong.getId());
+
+                        // 2. Update the existing fragment if present
+//                        FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+//                                getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
+//
+//                        if (floatingPlayerFragment != null && floatingPlayerFragment.isAdded()) {
+//                            floatingPlayerFragment.updatePlayerUI(
+//                                selectedSong.getAudioURL(),
+//                                selectedSong.getName(),
+//                                selectedSong.getArtist(),
+//                                albumImageUrl
+//                            );
+//                            findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
+//                        }
+
+                        // 3. Start playback
+
+                        //updateFloatingPlayer(selectedSong.getId());
                     });
             });
     }
@@ -198,9 +235,14 @@ public class SearchActivity extends AppCompatActivity {
         });
     }
 
+    // In SearchActivity.java
+    // In SearchActivity.java
     private void loadFloatingPlayer() {
         SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
         String currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+        String title = sharedPreferences.getString("title", "");
+        String artist = sharedPreferences.getString("artist", "");
+        String albumImageUrl = sharedPreferences.getString("albumImageUrl", "");
 
         FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
                 getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
@@ -213,12 +255,35 @@ public class SearchActivity extends AppCompatActivity {
         }
 
         if (currentAudioUrl != null) {
-            floatingPlayerFragment.updatePlayer(currentAudioUrl);
+            // Always update the UI, even if the fragment already exists
+            floatingPlayerFragment.updatePlayerUI(currentAudioUrl, title, artist, albumImageUrl);
             findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
         } else {
             findViewById(R.id.floatingPlayerContainer).setVisibility(View.GONE);
         }
     }
+//    protected void loadFloatingPlayer() {
+//
+//        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+//        String currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+//
+//        FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
+//                getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
+//
+//        if (floatingPlayerFragment == null) {
+//            floatingPlayerFragment = new FloatingPlayerFragment();
+//            getSupportFragmentManager().beginTransaction()
+//                    .replace(R.id.floatingPlayerContainer, floatingPlayerFragment)
+//                    .commitNow();
+//        }
+//
+//        if (currentAudioUrl != null) {
+//            floatingPlayerFragment.updatePlayer(currentAudioUrl);
+//            findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
+//        } else {
+//            findViewById(R.id.floatingPlayerContainer).setVisibility(View.GONE);
+//        }
+//    }
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -233,24 +298,41 @@ public class SearchActivity extends AppCompatActivity {
             isServiceBound = false;
         }
     };
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Intent intent = new Intent(this, MusicService.class);
-        bindService(intent, serviceConnection, BIND_AUTO_CREATE);
 
-        loadFloatingPlayer();
-    }
+
+@Override
+protected void onStart() {
+    super.onStart();
+    Intent intent = new Intent(this, MusicService.class);
+    bindService(intent, serviceConnection, BIND_AUTO_CREATE);
+
+    // Update lastTitle, lastArtist, lastAlbumImageUrl from SharedPreferences
+    SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+    lastTitle = sharedPreferences.getString("title", "");
+    lastArtist = sharedPreferences.getString("artist", "");
+    lastAlbumImageUrl = sharedPreferences.getString("albumImageUrl", "");
+
+    loadFloatingPlayer();
+}
 @Override
 protected void onStop() {
     super.onStop();
+
+    SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+    SharedPreferences.Editor editor = sharedPreferences.edit();
+
+    editor.putString("title", lastTitle);
+    editor.putString("artist", lastArtist);
+    editor.putString("albumImageUrl", lastAlbumImageUrl);
+    // You can also save currentAudioUrl if needed
+
+    editor.apply();
+
     if (isServiceBound) {
         unbindService(serviceConnection);
         isServiceBound = false;
     }
 }
-
-
     // Listener interface for async callback
     public interface OnSongsFetchedListener {
         void onSongsFetched(List<Song> songs);
@@ -311,8 +393,7 @@ protected void onStop() {
                                         }
 
                                         if (floatingPlayerFragment.isAdded()) {
-                                            floatingPlayerFragment.updatePlayer(audioUrl);
-                                            floatingPlayerFragment.updateAlbumImage(albumImageUrl);
+                                            floatingPlayerFragment.updatePlayerUI(audioUrl, title, artist, albumImageUrl);
                                             findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
                                             if (musicService != null && isServiceBound) {
                                                 musicService.playSong(audioUrl);
@@ -323,4 +404,6 @@ protected void onStop() {
                     }
                 });
     }
+
+
 }

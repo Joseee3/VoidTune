@@ -367,6 +367,19 @@ private void updatePlayPauseButton(ImageButton playPauseButton) {
            Log.e("FloatingPlayerFragment", "playPauseButton es null.");
        }
    }
+
+    public void updatePlayerUI(String autioUrl,String title, String artist, String albumImageUrl) {
+        if (songTitle != null) songTitle.setText(title);
+        if (songArtist != null) songArtist.setText(artist);
+        if (albumImage != null) {
+            Glide.with(this)
+                .load(albumImageUrl)
+                .placeholder(R.drawable.img_album)
+                .into(albumImage);
+        }
+        Log.d("PlayerFragment", "UI updated with: " + title + ", " + artist);
+    }
+
 //
 //   private void saveSongDataToCache(String title, String artist, String albumImageUrl, String audioUrl) {
 //       if (getActivity() != null) {

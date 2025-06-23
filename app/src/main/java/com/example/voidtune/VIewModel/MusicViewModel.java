@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MusicViewModel extends ViewModel {
+
+
+
     private final MutableLiveData<String> currentSongId = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isPlaying = new MutableLiveData<>();
 
@@ -41,6 +44,11 @@ public class MusicViewModel extends ViewModel {
         allSongs.clear();
         allSongs.addAll(songs);
         filteredSongs.setValue(new ArrayList<>(allSongs));
+    }
+
+
+    public void loadAllSongs() {
+        filteredSongs.setValue(allSongs);
     }
 
     public void setCurrentSongId(String songId) {
