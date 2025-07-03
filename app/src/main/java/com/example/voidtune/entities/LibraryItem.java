@@ -15,14 +15,12 @@ public class LibraryItem {
         this.title = title;
         this.subtitle = null;
     }
-
     public LibraryItem(String title, String type, int iconResId) {
         this.title = title;
         this.type = type;
         this.imageResId = iconResId;
     }
 
-    // Constructor para elementos con URLs de imágenes de la API
     public LibraryItem(String imageUrl, String title, String subtitle) {
         this.imageUrl = imageUrl;
         this.imageResId = 0;

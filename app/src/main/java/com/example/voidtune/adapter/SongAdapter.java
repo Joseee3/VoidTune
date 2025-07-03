@@ -1,6 +1,6 @@
 package com.example.voidtune.adapter;
 
-    import android.app.AlertDialog;
+import android.app.AlertDialog;
     import android.content.Context;
     import android.util.Log;
     import android.view.LayoutInflater;
@@ -34,9 +34,6 @@ package com.example.voidtune.adapter;
     private final ArrayList<Song> songs;
 
     private boolean isPlaylistContext; // Nuevo argumento
-
-       // En SongAdapter.java
-
 
     public SongAdapter(Context context, ArrayList<Song> songs, boolean isPlaylistContext) {
         this.context = context;
@@ -124,9 +121,6 @@ package com.example.voidtune.adapter;
         }
     }
 
-
-    // Add these methods to the SongAdapter class
-
     private void showPlaylistSelectionDialog(Song song) {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
@@ -158,7 +152,6 @@ package com.example.voidtune.adapter;
             });
         }
     }
-
 
    private void addToLikedSongs(Song song) {
        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
@@ -213,8 +206,6 @@ package com.example.voidtune.adapter;
        }
    }
 
-   // Interfaz para manejar clics en el botón de eliminar
-
    public interface OnDeleteClickListener {
        void onDeleteClick(Song song, int position);
    }
@@ -225,15 +216,12 @@ package com.example.voidtune.adapter;
        this.onDeleteClickListener = listener;
    }
 
-   // En SongAdapter.java
    public interface OnSongClickListener {
        void onSongClick(Song song);
    }
-
    private OnSongClickListener onSongClickListener;
 
    public void setOnSongClickListener(OnSongClickListener listener) {
        this.onSongClickListener = listener;
    }
-
 }

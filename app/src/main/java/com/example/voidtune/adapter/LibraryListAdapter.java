@@ -66,11 +66,6 @@ public class LibraryListAdapter extends RecyclerView.Adapter<LibraryListAdapter.
         });
     }
 
-//    @Override
-//    public int getItemCount() {
-//        return albums.size();
-//    }
-
     @Override
     public int getItemCount() {
         return Math.min(albums.size(), 4); // Limita a un máximo de 4 elementos

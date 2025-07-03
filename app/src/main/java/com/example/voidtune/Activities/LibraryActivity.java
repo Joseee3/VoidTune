@@ -85,13 +85,13 @@ public class LibraryActivity extends BaseActivity {
             isServiceBound = false;
         }
     };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_library);
 
         progressBar = findViewById(R.id.progressBar);
-
 
         //Configurar el DrawerLayout
         drawerLayout = findViewById(R.id.drawer_layout);
@@ -197,10 +197,8 @@ public class LibraryActivity extends BaseActivity {
         Button addPlaylistButton = findViewById(R.id.add_playlists_button);
         addPlaylistButton.setOnClickListener(v -> showCreatePlaylistDialog());
 
-
         ImageView addIcon = findViewById(R.id.add_icon);
         addIcon.setOnClickListener(v -> showCreatePlaylistDialog());
-
 
         Button likeSongButton = findViewById(R.id.likeSongButton);
         likeSongButton.setOnClickListener(v -> {
@@ -209,20 +207,6 @@ public class LibraryActivity extends BaseActivity {
             startActivity(intent);
         });
     }
-
-//    @Override
-//    protected void onStart() {
-//        super.onStart();
-//        Intent intent = new Intent(this, MusicService.class);
-//        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
-//
-//        // Restaurar el estado actual
-//        SharedPreferences sharedPreferences = getSharedPreferences("MusicPrefs", MODE_PRIVATE);
-//        currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
-//
-//        loadFloatingPlayer();
-//    }
-
 
     @Override
     protected void onStart() {
@@ -234,7 +218,6 @@ public class LibraryActivity extends BaseActivity {
         if (isServiceBound && musicService != null) {
             musicService.restoreState();
         }
-
 
         SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
         currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
@@ -262,9 +245,6 @@ public class LibraryActivity extends BaseActivity {
             isServiceBound = false;
         }
     }
-
-
-
 
   private void cargarLibraryItemsDesdeFirebase() {
         // Inicializa el RecyclerView
@@ -340,7 +320,6 @@ public class LibraryActivity extends BaseActivity {
             }
         }
     }
-
    private void showCreatePlaylistDialog() {
        AlertDialog dialog = new AlertDialog.Builder(this).create();
        View dialogView = getLayoutInflater().inflate(R.layout.dialog_create_playlist, null);
@@ -361,7 +340,6 @@ public class LibraryActivity extends BaseActivity {
 
        dialog.show();
    }
-
 
    private void createPlaylist(String playlistName) {
        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
@@ -394,7 +372,6 @@ public class LibraryActivity extends BaseActivity {
            Toast.makeText(this, "User not authenticated.", Toast.LENGTH_SHORT).show();
        }
    }
-
     private void cerrarSesion() {
         showLoading(true);
 
@@ -417,7 +394,6 @@ public class LibraryActivity extends BaseActivity {
             finish();
         }, 2000); // 2 segundos de retraso
     }
-
     private void showLoading(boolean isLoading) {
         if (isLoading) {
             progressBar.setVisibility(View.VISIBLE);
@@ -425,6 +401,4 @@ public class LibraryActivity extends BaseActivity {
             progressBar.setVisibility(View.GONE);
         }
     }
-
-
 }

@@ -14,17 +14,13 @@ public class PlayerService extends Service {
             return PlayerService.this;
         }
     }
-
     @Override
     public IBinder onBind(Intent intent) {
         return binder;
     }
-
     public void playTrack(String track) {
         currentTrack = track;
-        // Lógica para reproducir el track
     }
-
     public String getCurrentTrack() {
         return currentTrack;
     }

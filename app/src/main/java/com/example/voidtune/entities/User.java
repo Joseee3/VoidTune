@@ -7,8 +7,8 @@ public class User {
     private String username;
     private String email;
     private String profileImage;
-    private List<String> playlist; // IDs de playlists
-    private List<String> likeSong; // IDs de canciones favoritas
+    private List<String> playlist;
+    private List<String> likeSong;
 
     public User() {
     }

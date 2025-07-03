@@ -75,7 +75,6 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.ViewHo
             image = itemView.findViewById(R.id.image);
         }
     }
-
     public interface OnItemClickListener {
         void onItemClick(LibraryItem item);
     }

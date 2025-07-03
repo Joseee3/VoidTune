@@ -17,7 +17,6 @@ public class PlaylistOptionsBottomSheet extends BottomSheetDialogFragment {
         void onEditPlaylist();
         void onDeletePlaylist();
     }
-
     public void setOnOptionSelectedListener(OnOptionSelectedListener listener) {
         this.listener = listener;
     }

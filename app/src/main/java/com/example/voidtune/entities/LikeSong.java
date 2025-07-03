@@ -5,18 +5,15 @@ public class LikeSong {
     private String songName;
     private String artist;
 
-    // Constructor vacío requerido por Firebase
     public LikeSong() {
     }
 
-    // Constructor con parámetros
     public LikeSong(String songId, String songName, String artist) {
         this.songId = songId;
         this.songName = songName;
         this.artist = artist;
     }
 
-    // Getters y Setters
     public String getSongId() {
         return songId;
     }

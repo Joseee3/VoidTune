@@ -1,8 +1,5 @@
 package com.example.voidtune.entities;
 
-        import android.os.Parcel;
-import android.os.Parcelable;
-
 public class Song  {
     private String name;
     private String artist;
@@ -39,15 +36,14 @@ public class Song  {
         this.artist = artist;
     }
 
- // Constructor con parámetros (corregido)
- public Song(String songID, String albumID, String artist, String audioURL, String duration, String name, boolean isFull) {
-     this.id = songID;
-     this.albumID = albumID;
-     this.artist = artist;
-     this.audioURL = audioURL;
-     this.duracion = duration;
-     this.name = name;
- }
+     public Song(String songID, String albumID, String artist, String audioURL, String duration, String name, boolean isFull) {
+         this.id = songID;
+         this.albumID = albumID;
+         this.artist = artist;
+         this.audioURL = audioURL;
+         this.duracion = duration;
+         this.name = name;
+     }
 
     public Song(String id) {
         this.id = id;

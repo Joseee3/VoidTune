@@ -58,63 +58,56 @@ public class FloatingPlayerFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-
-        // Compartir el ViewModel con la actividad
         musicViewModel = new ViewModelProvider(requireActivity()).get(MusicViewModel.class);
 
-        // Observar cambios en el ID de la canción
         musicViewModel.getCurrentSongId().observe(this, songId -> {
             if (songId != null) {
-                updatePlayer(songId); // Actualiza la UI del reproductor
+                updatePlayer(songId);
             }
         });
     }
 
-@Override
-public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-    View view = inflater.inflate(R.layout.fragment_floating_player, container, false);
-    songTitle = view.findViewById(R.id.SongTitle);
-    songArtist = view.findViewById(R.id.ArtistName);
-    albumImage = view.findViewById(R.id.AlbumImage);
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_floating_player, container, false);
+        songTitle = view.findViewById(R.id.SongTitle);
+        songArtist = view.findViewById(R.id.ArtistName);
+        albumImage = view.findViewById(R.id.AlbumImage);
 
-    // Configurar el botón de play/pause
-    ImageButton playPauseButton = view.findViewById(R.id.miniPlayPauseButton);
-    playPauseButton.setOnClickListener(v -> {
-        if (isServiceBound && musicService != null) {
-            if (musicService.isPlaying()) {
-                musicService.pauseSong();
-            } else {
-                musicService.resumeSong();
+        ImageButton playPauseButton = view.findViewById(R.id.miniPlayPauseButton);
+        playPauseButton.setOnClickListener(v -> {
+            if (isServiceBound && musicService != null) {
+                if (musicService.isPlaying()) {
+                    musicService.pauseSong();
+                } else {
+                    musicService.resumeSong();
+                }
+                updatePlayPauseButton(playPauseButton);
             }
-            // Actualizar el estado del botón inmediatamente
-            updatePlayPauseButton(playPauseButton);
-        }
-    });
+        });
 
-    // Configurar el botón de "Next"
-    // Botones de navegación
-    view.findViewById(R.id.nextButton).setOnClickListener(v -> playNextSong());
-    view.findViewById(R.id.previousButton).setOnClickListener(v -> playPreviousSong());
+        view.findViewById(R.id.nextButton).setOnClickListener(v -> playNextSong());
+        view.findViewById(R.id.previousButton).setOnClickListener(v -> playPreviousSong());
 
-    return view;
-}
+        return view;
+    }
 
- private void playNextSong() {
-     if (isServiceBound && musicService != null) {
-         Log.d("FloatingPlayerFragment", "Reproduciendo la siguiente canción...");
-         musicService.playNextSong();
+     private void playNextSong() {
+         if (isServiceBound && musicService != null) {
+             Log.d("FloatingPlayerFragment", "Reproduciendo la siguiente canción...");
+             musicService.playNextSong();
 
-         String nextSongId = musicService.getCurrentSong(); // Obtén el ID de la siguiente canción
-         if (nextSongId != null) {
-             Log.d("FloatingPlayerFragment", "ID de la siguiente canción: " + nextSongId);
-             updatePlayer(nextSongId); // Actualiza la UI con la nueva canción
+             String nextSongId = musicService.getCurrentSong(); // Obtén el ID de la siguiente canción
+             if (nextSongId != null) {
+                 Log.d("FloatingPlayerFragment", "ID de la siguiente canción: " + nextSongId);
+                 updatePlayer(nextSongId); // Actualiza la UI con la nueva canción
+             } else {
+                 Log.e("FloatingPlayerFragment", "No se pudo obtener el ID de la siguiente canción.");
+             }
          } else {
-             Log.e("FloatingPlayerFragment", "No se pudo obtener el ID de la siguiente canción.");
+             Log.e("FloatingPlayerFragment", "El servicio no está enlazado o es null.");
          }
-     } else {
-         Log.e("FloatingPlayerFragment", "El servicio no está enlazado o es null.");
      }
- }
 
    private void playPreviousSong() {
        if (isServiceBound && musicService != null) {
@@ -130,15 +123,13 @@ public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle sa
        }
    }
 
-private void updatePlayPauseButton(ImageButton playPauseButton) {
-    if (isServiceBound && musicService != null) {
-        playPauseButton.setImageResource(
-            musicService.isPlaying() ? R.drawable.ic_pause : R.drawable.ic_play
-        );
+    private void updatePlayPauseButton(ImageButton playPauseButton) {
+        if (isServiceBound && musicService != null) {
+            playPauseButton.setImageResource(
+                musicService.isPlaying() ? R.drawable.ic_pause : R.drawable.ic_play
+            );
+        }
     }
-}
-
-
   private final ServiceConnection serviceConnection = new ServiceConnection() {
      @Override
      public void onServiceConnected(ComponentName name, IBinder service) {
@@ -176,8 +167,6 @@ private void updatePlayPauseButton(ImageButton playPauseButton) {
       }
 
     };
-
-
 
   @Override
   public void onStart() {
@@ -240,89 +229,88 @@ private void updatePlayPauseButton(ImageButton playPauseButton) {
     }
 
    public void updatePlayer(String songId) {
-            if (songId == null || songId.isEmpty()) {
-                Log.e("FloatingPlayerFragment", "Invalid songId provided.");
-                return;
-            }
+    if (songId == null || songId.isEmpty()) {
+        Log.e("FloatingPlayerFragment", "Invalid songId provided.");
+        return;
+    }
 
-       Log.d("FloatingPlayerFragment", "Cargando datos para la canción con ID: " + songId);
+    Log.d("FloatingPlayerFragment", "Cargando datos para la canción con ID: " + songId);
 
 
-       // Validar que el songId no contenga caracteres prohibidos
-            if (songId.contains(".") || songId.contains("#") || songId.contains("$") || songId.contains("[") || songId.contains("]")) {
-                Log.e("FloatingPlayerFragment", "songId contiene caracteres no permitidos.");
-                return;
-            }
-
-            DatabaseReference songRef = FirebaseDatabase.getInstance()
-                    .getReference("songs")
-                    .child(songId);
-
-            songRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot snapshot) {
-                    if (!isAdded()) {
-                        Log.e("FloatingPlayerFragment", "El fragmento no está adjunto a un contexto.");
-                        return;
-                    }
-
-                    if (!snapshot.exists()) {
-                        Log.e("FloatingPlayerFragment", "Song not found in Firebase.");
-                        return;
-                    }
-
-                    // Recuperar los datos de la canción
-                    String title = snapshot.child("name").getValue(String.class);
-                    String artist = snapshot.child("artist").getValue(String.class);
-                    String audioUrl = snapshot.child("audioURL").getValue(String.class);
-                    String albumId = snapshot.child("albumID").getValue(String.class);
-
-                    if (title == null || artist == null || audioUrl == null) {
-                        Log.e("FloatingPlayerFragment", "Incomplete song data in Firebase.");
-                        return;
-                    }
-
-                    // Actualizar las vistas del reproductor
-                    if (songTitle != null) songTitle.setText(title);
-                    if (songArtist != null) songArtist.setText(artist);
-
-                    if (albumId != null && !albumId.isEmpty()) {
-                        DatabaseReference albumRef = FirebaseDatabase.getInstance()
-                                .getReference("albums")
-                                .child(albumId);
-
-                        albumRef.child("imageURL").get().addOnCompleteListener(task -> {
-                            if (task.isSuccessful() && task.getResult() != null) {
-                                String albumImageUrl = task.getResult().getValue(String.class);
-                                if (albumImageUrl != null && albumImage != null) {
-                                    Glide.with(requireContext())
-                                            .load(albumImageUrl)
-                                            .placeholder(R.drawable.img_album)
-                                            .into(albumImage);
-
-                                    // Guardar los datos en el caché
-                                    saveSongDataToCache(title, artist, albumImageUrl, audioUrl);
-                                }
-                            } else {
-                                Log.e("FloatingPlayerFragment", "Failed to fetch album image.");
-                            }
-                        });
-                    } else {
-                        saveSongDataToCache(title, artist, null, audioUrl);
-                    }
-
-                    if (isServiceBound && musicService != null) {
-                        musicService.playSong(audioUrl);
-                    }
-                }
-
-                @Override
-                public void onCancelled(@NonNull DatabaseError error) {
-                    Log.e("FloatingPlayerFragment", "Error fetching song: " + error.getMessage());
-                }
-            });
+    // Validar que el songId no contenga caracteres prohibidos
+        if (songId.contains(".") || songId.contains("#") || songId.contains("$") || songId.contains("[") || songId.contains("]")) {
+            Log.e("FloatingPlayerFragment", "songId contiene caracteres no permitidos.");
+            return;
         }
 
+        DatabaseReference songRef = FirebaseDatabase.getInstance()
+                .getReference("songs")
+                .child(songId);
+
+        songRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!isAdded()) {
+                    Log.e("FloatingPlayerFragment", "El fragmento no está adjunto a un contexto.");
+                    return;
+                }
+
+                if (!snapshot.exists()) {
+                    Log.e("FloatingPlayerFragment", "Song not found in Firebase.");
+                    return;
+                }
+
+                // Recuperar los datos de la canción
+                String title = snapshot.child("name").getValue(String.class);
+                String artist = snapshot.child("artist").getValue(String.class);
+                String audioUrl = snapshot.child("audioURL").getValue(String.class);
+                String albumId = snapshot.child("albumID").getValue(String.class);
+
+                if (title == null || artist == null || audioUrl == null) {
+                    Log.e("FloatingPlayerFragment", "Incomplete song data in Firebase.");
+                    return;
+                }
+
+                // Actualizar las vistas del reproductor
+                if (songTitle != null) songTitle.setText(title);
+                if (songArtist != null) songArtist.setText(artist);
+
+                if (albumId != null && !albumId.isEmpty()) {
+                    DatabaseReference albumRef = FirebaseDatabase.getInstance()
+                            .getReference("albums")
+                            .child(albumId);
+
+                    albumRef.child("imageURL").get().addOnCompleteListener(task -> {
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            String albumImageUrl = task.getResult().getValue(String.class);
+                            if (albumImageUrl != null && albumImage != null) {
+                                Glide.with(requireContext())
+                                        .load(albumImageUrl)
+                                        .placeholder(R.drawable.img_album)
+                                        .into(albumImage);
+
+                                // Guardar los datos en el caché
+                                saveSongDataToCache(title, artist, albumImageUrl, audioUrl);
+                            }
+                        } else {
+                            Log.e("FloatingPlayerFragment", "Failed to fetch album image.");
+                        }
+                    });
+                } else {
+                    saveSongDataToCache(title, artist, null, audioUrl);
+                }
+
+                if (isServiceBound && musicService != null) {
+                    musicService.playSong(audioUrl);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e("FloatingPlayerFragment", "Error fetching song: " + error.getMessage());
+            }
+        });
+    }
 
   private void updatePlayerUI() {
        if (musicService == null) {
@@ -367,180 +355,112 @@ private void updatePlayPauseButton(ImageButton playPauseButton) {
            Log.e("FloatingPlayerFragment", "playPauseButton es null.");
        }
    }
-//
-//   private void saveSongDataToCache(String title, String artist, String albumImageUrl, String audioUrl) {
-//       if (getActivity() != null) {
-//           SharedPreferences sharedPreferences = getActivity().getSharedPreferences("FloatingPlayerCache", Context.MODE_PRIVATE);
-//           SharedPreferences.Editor editor = sharedPreferences.edit();
-//           editor.putString("title", title);
-//           editor.putString("artist", artist);
-//           editor.putString("albumImageUrl", albumImageUrl);
-//           editor.putString("audioUrl", audioUrl); // Asegúrate de usar la misma clave
-//           editor.apply(); // Guarda los datos de forma asíncrona
-//           Log.d("FloatingPlayerFragment", "Datos guardados en SharedPreferences: " + title + ", " + artist + ", " + albumImageUrl + ", " + audioUrl);
-//       } else {
-//           Log.e("FloatingPlayerFragment", "getActivity() es null, no se pueden guardar los datos en SharedPreferences.");
-//       }
-//   }
-//
-//  private void loadSongDataFromCache() {
-//      if (getActivity() != null) {
-//          SharedPreferences sharedPreferences = getActivity().getSharedPreferences("FloatingPlayerCache", Context.MODE_PRIVATE);
-//          String title = sharedPreferences.getString("title", null);
-//          String artist = sharedPreferences.getString("artist", null);
-//          String albumImageUrl = sharedPreferences.getString("albumImageUrl", null);
-//          String audioUrl = sharedPreferences.getString("audioUrl", null); // Recuperar la URL del audio
-//
-//          if (title != null && songTitle != null) songTitle.setText(title);
-//          if (artist != null && songArtist != null) songArtist.setText(artist);
-//          if (albumImageUrl != null && albumImage != null) {
-//              Glide.with(requireContext())
-//                  .load(albumImageUrl)
-//                  .placeholder(R.drawable.img_album)
-//                  .into(albumImage);
-//          }
-//
-//          Log.d("FloatingPlayerFragment", "Datos cargados de SharedPreferences: " + title + ", " + artist + ", " + albumImageUrl + ", " + audioUrl);
-//      } else {
-//          Log.e("FloatingPlayerFragment", "getActivity() es null, no se pueden cargar los datos desde SharedPreferences.");
-//      }
-//  }
-//private final BroadcastReceiver updatePlayerReceiver = new BroadcastReceiver() {
-//    @Override
-//    public void onReceive(Context context, Intent intent) {
-//        SharedPreferences sharedPreferences = context.getSharedPreferences("FloatingPlayerCache", Context.MODE_PRIVATE);
-//        String title = sharedPreferences.getString("title", null);
-//        String artist = sharedPreferences.getString("artist", null);
-//        String audioUrl = sharedPreferences.getString("audioUrl", null);
-//
-//        if (title != null && artist != null && audioUrl != null) {
-//            updatePlayerUI(title, artist, audioUrl);
-//        } else {
-//            Log.e("FloatingPlayerFragment", "Datos incompletos en SharedPreferences.");
-//        }
-//    }
-//};
 
-//   @Override
-//public void onResume() {
-//    super.onResume();
-//    IntentFilter filter = new IntentFilter("com.example.voidtune.UPDATE_PLAYER");
-//       ContextCompat.registerReceiver(requireActivity(), updatePlayerReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
-//}
-//
-//@Override
-//public void onPause() {
-//    super.onPause();
-//    requireActivity().unregisterReceiver(updatePlayerReceiver);
-//}
-
-private void saveSongDataToCache(String title, String artist, String albumImageUrl, String audioUrl) {
-    if (getActivity() != null) {
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("FloatingPlayerCache", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("title", title);
-        editor.putString("artist", artist);
-        editor.putString("albumImageUrl", albumImageUrl);
-        editor.putString("audioURL", audioUrl); // Clave consistente
-        editor.apply();
-        Log.d("FloatingPlayerFragment", "Datos guardados en SharedPreferences: " + title + ", " + artist + ", " + albumImageUrl + ", " + audioUrl);
+    private void saveSongDataToCache(String title, String artist, String albumImageUrl, String audioUrl) {
+        if (getActivity() != null) {
+            SharedPreferences sharedPreferences = getActivity().getSharedPreferences("FloatingPlayerCache", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("title", title);
+            editor.putString("artist", artist);
+            editor.putString("albumImageUrl", albumImageUrl);
+            editor.putString("audioURL", audioUrl); // Clave consistente
+            editor.apply();
+            Log.d("FloatingPlayerFragment", "Datos guardados en SharedPreferences: " + title + ", " + artist + ", " + albumImageUrl + ", " + audioUrl);
+        }
     }
-}
 
-private void loadSongDataFromCache() {
-    if (getActivity() != null) {
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("FloatingPlayerCache", Context.MODE_PRIVATE);
-        String title = sharedPreferences.getString("title", null);
-        String artist = sharedPreferences.getString("artist", null);
-        String albumImageUrl = sharedPreferences.getString("albumImageUrl", null);
-        String audioUrl = sharedPreferences.getString("audioURL", null); // Clave consistente
+    private void loadSongDataFromCache() {
+        if (getActivity() != null) {
+            SharedPreferences sharedPreferences = getActivity().getSharedPreferences("FloatingPlayerCache", Context.MODE_PRIVATE);
+            String title = sharedPreferences.getString("title", null);
+            String artist = sharedPreferences.getString("artist", null);
+            String albumImageUrl = sharedPreferences.getString("albumImageUrl", null);
+            String audioUrl = sharedPreferences.getString("audioURL", null); // Clave consistente
 
-        if (title != null && artist != null && audioUrl != null) {
-            if (songTitle != null) songTitle.setText(title);
-            if (songArtist != null) songArtist.setText(artist);
-            if (albumImageUrl != null && albumImage != null) {
-                Glide.with(requireContext())
-                    .load(albumImageUrl)
-                    .placeholder(R.drawable.img_album)
-                    .into(albumImage);
-            }
-            Log.d("FloatingPlayerFragment", "Datos cargados de SharedPreferences: " + title + ", " + artist + ", " + albumImageUrl + ", " + audioUrl);
+            if (title != null && artist != null && audioUrl != null) {
+                if (songTitle != null) songTitle.setText(title);
+                if (songArtist != null) songArtist.setText(artist);
+                if (albumImageUrl != null && albumImage != null) {
+                    Glide.with(requireContext())
+                        .load(albumImageUrl)
+                        .placeholder(R.drawable.img_album)
+                        .into(albumImage);
+                }
+                Log.d("FloatingPlayerFragment", "Datos cargados de SharedPreferences: " + title + ", " + artist + ", " + albumImageUrl + ", " + audioUrl);
 
-            // Mostrar el reproductor flotante
-            View floatingPlayer = getView() != null ? getView().findViewById(R.id.floatingPlayerContainer) : null;
-            if (floatingPlayer != null) {
-                floatingPlayer.setVisibility(View.VISIBLE);
+                // Mostrar el reproductor flotante
+                View floatingPlayer = getView() != null ? getView().findViewById(R.id.floatingPlayerContainer) : null;
+                if (floatingPlayer != null) {
+                    floatingPlayer.setVisibility(View.VISIBLE);
+                }
+            } else {
+                Log.e("FloatingPlayerFragment", "No se encontraron datos válidos en SharedPreferences.");
+
+                // Ocultar el reproductor flotante si no hay datos
+                View floatingPlayer = getView() != null ? getView().findViewById(R.id.floatingPlayerContainer) : null;
+                if (floatingPlayer != null) {
+                    floatingPlayer.setVisibility(View.GONE);
+                }
             }
         } else {
-            Log.e("FloatingPlayerFragment", "No se encontraron datos válidos en SharedPreferences.");
+            Log.e("FloatingPlayerFragment", "getActivity() es null, no se pueden cargar los datos desde SharedPreferences.");
+        }
+    }
 
-            // Ocultar el reproductor flotante si no hay datos
-            View floatingPlayer = getView() != null ? getView().findViewById(R.id.floatingPlayerContainer) : null;
-            if (floatingPlayer != null) {
-                floatingPlayer.setVisibility(View.GONE);
+    private final BroadcastReceiver playerUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String title = intent.getStringExtra("title");
+            String artist = intent.getStringExtra("artist");
+            String albumImageUrl = intent.getStringExtra("albumImageUrl");
+
+            Log.d("PlayerFragment", "Datos recibidos: " + title + ", " + artist + ", " + albumImageUrl);
+
+            if (title != null && artist != null) {
+                updatePlayerUI(title, artist, albumImageUrl);
+            } else {
+                Log.e("PlayerFragment", "Datos incompletos recibidos en el broadcast.");
             }
         }
-    } else {
-        Log.e("FloatingPlayerFragment", "getActivity() es null, no se pueden cargar los datos desde SharedPreferences.");
-    }
-}
-
-private final BroadcastReceiver playerUpdateReceiver = new BroadcastReceiver() {
+    };
     @Override
-    public void onReceive(Context context, Intent intent) {
-        String title = intent.getStringExtra("title");
-        String artist = intent.getStringExtra("artist");
-        String albumImageUrl = intent.getStringExtra("albumImageUrl");
+    public void onResume() {
+        super.onResume();
+        IntentFilter filter = new IntentFilter("com.example.voidtune.UPDATE_PLAYER");
+        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(playerUpdateReceiver, filter);
+    }
 
-        Log.d("PlayerFragment", "Datos recibidos: " + title + ", " + artist + ", " + albumImageUrl);
+    @Override
+    public void onPause() {
+        super.onPause();
+        LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(playerUpdateReceiver);
+    }
 
-        if (title != null && artist != null) {
-            updatePlayerUI(title, artist, albumImageUrl);
+    public void updateAlbumImage(String imageUrl) {
+        ImageView albumImageView = getView().findViewById(R.id.AlbumImage);
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            Glide.with(getContext())
+                    .load(imageUrl)
+                    .placeholder(R.drawable.img_album)
+                    .into(albumImageView);
         } else {
-            Log.e("PlayerFragment", "Datos incompletos recibidos en el broadcast.");
+            albumImageView.setImageResource(R.drawable.img_album);
         }
     }
-};
-@Override
-public void onResume() {
-    super.onResume();
-    IntentFilter filter = new IntentFilter("com.example.voidtune.UPDATE_PLAYER");
-    LocalBroadcastManager.getInstance(requireContext()).registerReceiver(playerUpdateReceiver, filter);
-}
 
-@Override
-public void onPause() {
-    super.onPause();
-    LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(playerUpdateReceiver);
-}
-
-// In FloatingPlayerFragment.java
-public void updateAlbumImage(String imageUrl) {
-    ImageView albumImageView = getView().findViewById(R.id.AlbumImage);
-    if (imageUrl != null && !imageUrl.isEmpty()) {
-        Glide.with(getContext())
-                .load(imageUrl)
+    public void updatePlayerUI(String title, String artist, String albumImageUrl) {
+        if (songTitle != null) {
+            songTitle.setText(title);
+        }
+        if (songArtist != null) {
+            songArtist.setText(artist);
+        }
+        if (albumImage != null) {
+            Glide.with(this)
+                .load(albumImageUrl)
                 .placeholder(R.drawable.img_album)
-                .into(albumImageView);
-    } else {
-        albumImageView.setImageResource(R.drawable.img_album);
+                .into(albumImage);
+        }
+        Log.d("PlayerFragment", "UI actualizada con: " + title + ", " + artist);
     }
-}
-
-public void updatePlayerUI(String title, String artist, String albumImageUrl) {
-    if (songTitle != null) {
-        songTitle.setText(title);
-    }
-    if (songArtist != null) {
-        songArtist.setText(artist);
-    }
-    if (albumImage != null) {
-        Glide.with(this)
-            .load(albumImageUrl)
-            .placeholder(R.drawable.img_album)
-            .into(albumImage);
-    }
-    Log.d("PlayerFragment", "UI actualizada con: " + title + ", " + artist);
-}
-
 }

@@ -13,7 +13,6 @@ import java.net.URL;
 
 public class SongOfflineUtils {
 
-    // 1. Download and save the song locally
     public static void downloadSong(String audioUrl, String fileName, Context context) {
         new Thread(() -> {
             try (InputStream in = new URL(audioUrl).openStream();
@@ -29,14 +28,12 @@ public class SongOfflineUtils {
         }).start();
     }
 
-    // 2. Check if device is offline
     public static boolean isOffline(Context context) {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         return activeNetwork == null || !activeNetwork.isConnected();
     }
 
-    // 3. Play local file if offline
     public static void playCurrentSong(Context context, String fileName, String onlineUrl) {
         String path;
         if (isOffline(context)) {

@@ -1,5 +1,4 @@
 package com.example.voidtune;
-
 import android.content.ComponentName;
 
 import android.content.Context;
@@ -17,8 +16,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.example.voidtune.service.PlayerService;
-
-
 public class BaseActivity extends AppCompatActivity {
 protected PlayerService playerService;
 private boolean isBound = false;
@@ -35,57 +32,57 @@ private final ServiceConnection connection = new ServiceConnection() {
     public void onServiceDisconnected(ComponentName name) {
         isBound = false;
     }
-};
+    };
 
-@Override
-protected void onCreate(@Nullable Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    Intent intent = new Intent(this, PlayerService.class);
-    bindService(intent, connection, Context.BIND_AUTO_CREATE);
-}
-
-@Override
-protected void onDestroy() {
-    super.onDestroy();
-    if (isBound) {
-        unbindService(connection);
-        isBound = false;
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Intent intent = new Intent(this, PlayerService.class);
+        bindService(intent, connection, Context.BIND_AUTO_CREATE);
     }
-}
 
-@Override
-protected void onSaveInstanceState(Bundle outState) {
-    super.onSaveInstanceState(outState);
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (isBound) {
+            unbindService(connection);
+            isBound = false;
+        }
+    }
 
-    SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", Context.MODE_PRIVATE);
-    String title = sharedPreferences.getString("title", null);
-    String artist = sharedPreferences.getString("artist", null);
-    String albumImageUrl = sharedPreferences.getString("albumImageUrl", null);
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
 
-    outState.putString("title", title);
-    outState.putString("artist", artist);
-    outState.putString("albumImageUrl", albumImageUrl);
-}
-
-@Override
-protected void onRestoreInstanceState(Bundle savedInstanceState) {
-    super.onRestoreInstanceState(savedInstanceState);
-
-    String title = savedInstanceState.getString("title");
-    String artist = savedInstanceState.getString("artist");
-    String albumImageUrl = savedInstanceState.getString("albumImageUrl");
-
-    if (title != null && artist != null) {
         SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("title", title);
-        editor.putString("artist", artist);
-        editor.putString("albumImageUrl", albumImageUrl);
-        editor.apply();
+        String title = sharedPreferences.getString("title", null);
+        String artist = sharedPreferences.getString("artist", null);
+        String albumImageUrl = sharedPreferences.getString("albumImageUrl", null);
+
+        outState.putString("title", title);
+        outState.putString("artist", artist);
+        outState.putString("albumImageUrl", albumImageUrl);
     }
 
-    loadFloatingPlayer(); // Recarga el reproductor flotante
-}
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        String title = savedInstanceState.getString("title");
+        String artist = savedInstanceState.getString("artist");
+        String albumImageUrl = savedInstanceState.getString("albumImageUrl");
+
+        if (title != null && artist != null) {
+            SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("title", title);
+            editor.putString("artist", artist);
+            editor.putString("albumImageUrl", albumImageUrl);
+            editor.apply();
+        }
+
+        loadFloatingPlayer();
+    }
 
 
    protected void loadFloatingPlayer() {

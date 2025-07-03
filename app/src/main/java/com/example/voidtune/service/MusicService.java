@@ -53,13 +53,9 @@ public class MusicService extends Service {
     }
 
 
-// In MusicService.java
-
-
-public List<String> getPlaylist() {
-    return new ArrayList<>(playlist);
-}
-
+    public List<String> getPlaylist() {
+        return new ArrayList<>(playlist);
+    }
 
     public class MusicBinder extends Binder {
         public MusicService getService() {
@@ -85,19 +81,13 @@ public List<String> getPlaylist() {
         return currentAlbumImageUrl;
     }
 
-
-
-    // Método para establecer la canción actual
     public void setCurrentSong(String song) {
         this.currentSong = song;
     }
 
-    // Método para obtener la canción actual
     public String getCurrentSong() {
         return currentSong;
     }
-
-
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -116,7 +106,6 @@ public List<String> getPlaylist() {
         return 0; // Devuelve 0 si el MediaPlayer no está inicializado
     }
 
-
     public void play() {
         if (currentAudioUrl != null) {
             playSong(currentAudioUrl); // Reutiliza la lógica de playSong
@@ -126,166 +115,149 @@ public List<String> getPlaylist() {
     }
 
     public void playSong(String audioUrl) {
-    if (audioUrl == null || audioUrl.isEmpty()) {
-        Log.e("MusicService", "La URL del audio es nula o vacía.");
-        return;
-    }
-
-    try {
-        if (mediaPlayer == null) {
-            mediaPlayer = new MediaPlayer();
-        } else {
-            mediaPlayer.reset();
+        if (audioUrl == null || audioUrl.isEmpty()) {
+            Log.e("MusicService", "La URL del audio es nula o vacía.");
+            return;
         }
 
-        mediaPlayer.setDataSource(audioUrl);
-        mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        try {
+            if (mediaPlayer == null) {
+                mediaPlayer = new MediaPlayer();
+            } else {
+                mediaPlayer.reset();
+            }
 
-        mediaPlayer.setOnPreparedListener(mp -> {
-            mp.start();
-            Log.d("MusicService", "Reproducción iniciada.");
-        });
+            mediaPlayer.setDataSource(audioUrl);
+            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 
-        mediaPlayer.setOnErrorListener((mp, what, extra) -> {
-            Log.e("MusicService", "Error en MediaPlayer: " + what + ", extra: " + extra);
-            return true;
-        });
+            mediaPlayer.setOnPreparedListener(mp -> {
+                mp.start();
+                Log.d("MusicService", "Reproducción iniciada.");
+            });
 
-        mediaPlayer.setOnCompletionListener(mp -> {
-            Log.d("MusicService", "Reproducción completada.");
-            playNextSong(); // Reproduce la siguiente canción
-        });
+            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                Log.e("MusicService", "Error en MediaPlayer: " + what + ", extra: " + extra);
+                return true;
+            });
 
-        mediaPlayer.prepareAsync();
-        Log.d("MusicService", "MediaPlayer configurado con la URL: " + audioUrl);
-    } catch (IOException e) {
-        Log.e("MusicService", "Error al configurar el MediaPlayer: " + e.getMessage());
+            mediaPlayer.setOnCompletionListener(mp -> {
+                Log.d("MusicService", "Reproducción completada.");
+                playNextSong(); // Reproduce la siguiente canción
+            });
 
-    }
-}
+            mediaPlayer.prepareAsync();
+            Log.d("MusicService", "MediaPlayer configurado con la URL: " + audioUrl);
+        } catch (IOException e) {
+            Log.e("MusicService", "Error al configurar el MediaPlayer: " + e.getMessage());
 
-public void replaceAndPlaySong(String songId, List<String> newPlaylist) {
-    if (songId == null || songId.isEmpty()) {
-        Log.e("MusicService", "El ID de la canción es inválido.");
-        return;
-    }
-
-    if (newPlaylist == null || newPlaylist.isEmpty()) {
-        Log.e("MusicService", "La nueva lista de reproducción está vacía o es null.");
-        return;
+        }
     }
 
-    Log.d("MusicService", "Reemplazando la lista de reproducción y reproduciendo canción con ID: " + songId);
+    public void replaceAndPlaySong(String songId, List<String> newPlaylist) {
+        if (songId == null || songId.isEmpty()) {
+            Log.e("MusicService", "El ID de la canción es inválido.");
+            return;
+        }
 
-    // Actualizar la lista de reproducción
-    playlist.clear();
-    playlist.addAll(newPlaylist);
-    currentSongIndex = playlist.indexOf(songId);
+        if (newPlaylist == null || newPlaylist.isEmpty()) {
+            Log.e("MusicService", "La nueva lista de reproducción está vacía o es null.");
+            return;
+        }
 
-    if (currentSongIndex == -1) {
-        Log.e("MusicService", "El ID de la canción no se encuentra en la nueva lista de reproducción.");
-        return;
-    }
+        Log.d("MusicService", "Reemplazando la lista de reproducción y reproduciendo canción con ID: " + songId);
 
-    // Obtener los datos de la canción desde Firebase
-    DatabaseReference songRef = FirebaseDatabase.getInstance().getReference("songs").child(songId);
-    songRef.get().addOnCompleteListener(task -> {
-        if (task.isSuccessful() && task.getResult() != null) {
-            DataSnapshot snapshot = task.getResult();
-            String title = snapshot.child("name").getValue(String.class);
-            String artist = snapshot.child("artist").getValue(String.class);
-            String audioUrl = snapshot.child("audioURL").getValue(String.class);
-            String albumId = snapshot.child("albumID").getValue(String.class);
+        // Actualizar la lista de reproducción
+        playlist.clear();
+        playlist.addAll(newPlaylist);
+        currentSongIndex = playlist.indexOf(songId);
 
-            if (audioUrl == null || audioUrl.isEmpty()) {
-                Log.e("MusicService", "URL de audio no válida. Intentando cargar desde SharedPreferences.");
-                loadFromSharedPreferences();
-                if (currentAudioUrl != null && !currentAudioUrl.isEmpty()) {
-                    playSong(currentAudioUrl);
-                } else {
-                    Log.e("MusicService", "No se pudo cargar una URL válida.");
+        if (currentSongIndex == -1) {
+            Log.e("MusicService", "El ID de la canción no se encuentra en la nueva lista de reproducción.");
+            return;
+        }
+
+        // Obtener los datos de la canción desde Firebase
+        DatabaseReference songRef = FirebaseDatabase.getInstance().getReference("songs").child(songId);
+        songRef.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                DataSnapshot snapshot = task.getResult();
+                String title = snapshot.child("name").getValue(String.class);
+                String artist = snapshot.child("artist").getValue(String.class);
+                String audioUrl = snapshot.child("audioURL").getValue(String.class);
+                String albumId = snapshot.child("albumID").getValue(String.class);
+
+                if (audioUrl == null || audioUrl.isEmpty()) {
+                    Log.e("MusicService", "URL de audio no válida. Intentando cargar desde SharedPreferences.");
+                    loadFromSharedPreferences();
+                    if (currentAudioUrl != null && !currentAudioUrl.isEmpty()) {
+                        playSong(currentAudioUrl);
+                    } else {
+                        Log.e("MusicService", "No se pudo cargar una URL válida.");
+                    }
+                    return;
                 }
-                return;
+
+                Log.d("MusicService", "Datos recuperados: " + title + ", " + artist + ", " + audioUrl);
+
+                // Guardar y reproducir
+                playSongWithDetails(title, artist, audioUrl, null);
+            } else {
+                Log.e("MusicService", "Error al obtener datos de la canción: " + task.getException());
             }
-
-            Log.d("MusicService", "Datos recuperados: " + title + ", " + artist + ", " + audioUrl);
-
-            // Guardar y reproducir
-            playSongWithDetails(title, artist, audioUrl, null);
-        } else {
-            Log.e("MusicService", "Error al obtener datos de la canción: " + task.getException());
-        }
-    }).addOnFailureListener(e -> {
-        Log.e("MusicService", "Error al recuperar datos de Firebase: " + e.getMessage());
-    });
-}
-
-public void replaceAndPlaySong(String songId) {
-    if (songId == null || songId.isEmpty()) {
-        Log.e("MusicService", "El ID de la canción es inválido.");
-        return;
+        }).addOnFailureListener(e -> {
+            Log.e("MusicService", "Error al recuperar datos de Firebase: " + e.getMessage());
+        });
     }
 
-    Log.d("MusicService", "Reemplazando y reproduciendo canción con ID: " + songId);
-
-    DatabaseReference songRef = FirebaseDatabase.getInstance().getReference("songs").child(songId);
-    songRef.get().addOnCompleteListener(task -> {
-        if (task.isSuccessful() && task.getResult() != null) {
-            DataSnapshot snapshot = task.getResult();
-            String title = snapshot.child("name").getValue(String.class);
-            String artist = snapshot.child("artist").getValue(String.class);
-            String audioUrl = snapshot.child("audioURL").getValue(String.class);
-            String albumId = snapshot.child("albumID").getValue(String.class);
-
-            if (audioUrl == null || audioUrl.isEmpty()) {
-                Log.e("MusicService", "URL de audio no válida para la canción con ID: " + songId);
-                return;
-            }
-
-            Log.d("MusicService", "Datos recuperados: " + title + ", " + artist + ", " + audioUrl);
-
-            // Configura y reproduce la canción
-            playSongWithDetails(title, artist, audioUrl, null);
-        } else {
-            Log.e("MusicService", "Error al obtener datos de la canción: " + task.getException());
+    public void replaceAndPlaySong(String songId) {
+        if (songId == null || songId.isEmpty()) {
+            Log.e("MusicService", "El ID de la canción es inválido.");
+            return;
         }
-    }).addOnFailureListener(e -> {
-        Log.e("MusicService", "Error al recuperar datos de Firebase: " + e.getMessage());
-    });
-}
+
+        Log.d("MusicService", "Reemplazando y reproduciendo canción con ID: " + songId);
+
+        DatabaseReference songRef = FirebaseDatabase.getInstance().getReference("songs").child(songId);
+        songRef.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                DataSnapshot snapshot = task.getResult();
+                String title = snapshot.child("name").getValue(String.class);
+                String artist = snapshot.child("artist").getValue(String.class);
+                String audioUrl = snapshot.child("audioURL").getValue(String.class);
+                String albumId = snapshot.child("albumID").getValue(String.class);
+
+                if (audioUrl == null || audioUrl.isEmpty()) {
+                    Log.e("MusicService", "URL de audio no válida para la canción con ID: " + songId);
+                    return;
+                }
+
+                Log.d("MusicService", "Datos recuperados: " + title + ", " + artist + ", " + audioUrl);
+
+                // Configura y reproduce la canción
+                playSongWithDetails(title, artist, audioUrl, null);
+            } else {
+                Log.e("MusicService", "Error al obtener datos de la canción: " + task.getException());
+            }
+        }).addOnFailureListener(e -> {
+            Log.e("MusicService", "Error al recuperar datos de Firebase: " + e.getMessage());
+        });
+    }
     public void saveState() {
         if (mediaPlayer != null) {
             currentPosition = mediaPlayer.getCurrentPosition();
         }
     }
-
     public void resumeSong() {
         if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
             mediaPlayer.start();
         }
     }
 
-
-
     public void pauseSong() {
         if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             mediaPlayer.pause();
         }
     }
-
-
-
-//    public void setPlaylist(List<String> playlist) {
-//        if (playlist == null || playlist.isEmpty()) {
-//            Log.e("MusicService", "La lista de reproducción está vacía o es null.");
-//            this.playlist = new ArrayList<>();
-//            return;
-//        }
-//        this.playlist = playlist;
-//        currentSongIndex = 0; // Reinicia el índice
-//        Log.d("MusicService", "Lista de reproducción configurada con " + playlist.size() + " canciones.");
-//        // No iniciar reproducción automáticamente
-//    }
 
     public void setPlaylist(List<String> playlist) {
         if (playlist == null || playlist.isEmpty()) {
@@ -371,16 +343,6 @@ public void replaceAndPlaySong(String songId) {
         }
     }
 
-//    public void playNextSong() {
-//        if (playlist != null && !playlist.isEmpty()) {
-//            currentSongIndex = (currentSongIndex + 1) % playlist.size();
-//            String nextSongId = playlist.get(currentSongIndex);
-//            fetchAndSaveSongData(nextSongId);
-//        } else {
-//            Log.e("MusicService", "No hay canciones en la lista de reproducción.");
-//        }
-//    }
-
     public void playPreviousSong() {
         if (playlist != null && !playlist.isEmpty()) {
             currentSongIndex = (currentSongIndex - 1 + playlist.size()) % playlist.size();
@@ -413,120 +375,16 @@ public void replaceAndPlaySong(String songId) {
     notifyPlayerUpdate(); // Notificar actualización
 }
 
-
-
     private final List<String> failedSongs = new ArrayList<>(); // Lista de canciones fallidas
 
-//   private void fetchAndSaveSongData(String songId) {
-//        if (songId == null || songId.isEmpty()) {
-//            Log.e("MusicService", "El ID de la canción es inválido.");
-//            return;
-//        }
-//
-//        if (failedSongs.contains(songId)) {
-//            Log.e("MusicService", "La canción con ID: " + songId + " ya falló previamente. Saltando...");
-//            playNeSxtSong();
-//            return;
-//        }
-//
-//        Log.d("MusicService", "Recuperando datos para la canción con ID: " + songId);
-//
-//        DatabaseReference songRef = FirebaseDatabase.getInstance().getReference("songs").child(songId);
-//        songRef.get().addOnCompleteListener(task -> {
-//            if (task.isSuccessful() && task.getResult() != null) {
-//                DataSnapshot snapshot = task.getResult();
-//
-//                // Depurar los datos recuperados
-//                Log.d("MusicService", "Datos recuperados: " + snapshot.getValue());
-//
-//                // Obtener datos de la canción
-//                String title = snapshot.child("name").getValue(String.class); // Cambiado de "title" a "name"
-//                String artist = snapshot.child("artist").getValue(String.class);
-//                String audioUrl = snapshot.child("audioURL").getValue(String.class);
-//                if (audioUrl == null || audioUrl.isEmpty()) {
-//                    Log.e("FloatingPlayerFragment", "audioURL no encontrado o está vacío en Firebase.");
-//                } else {
-//                    Log.d("FloatingPlayerFragment", "audioURL obtenido de Firebase: " + audioUrl);
-//                }
-//                String albumId = snapshot.child("albumID").getValue(String.class);
-//
-//                if (title == null || artist == null || audioUrl == null) {
-//                    Log.e("MusicService", "Datos incompletos para la canción con ID: " + songId);
-//                    failedSongs.add(songId); // Agregar a la lista de fallos
-//                    playNextSong(); // Intenta reproducir la siguiente canción
-//                    return;
-//                }
-//
-//                if (audioUrl == null || audioUrl.isEmpty()) {
-//                    Log.e("MusicService", "audioURL no encontrado o está vacío en Firebase.");
-//                    failedSongs.add(songId); // Agregar a la lista de fallos
-//                    playNextSong(); // Intenta reproducir la siguiente canción
-//                    return;
-//                }
-//
-//                // Buscar la imagen del álbum si el albumId está disponible
-//                if (albumId != null && !albumId.isEmpty()) {
-//                    DatabaseReference albumRef = FirebaseDatabase.getInstance().getReference("albums").child(albumId);
-//                    albumRef.child("imageURL").get().addOnCompleteListener(albumTask -> {
-//                        if (albumTask.isSuccessful() && albumTask.getResult() != null) {
-//                            String albumImageUrl = albumTask.getResult().getValue(String.class);
-//                            playSongWithDetails(title, artist, audioUrl, albumImageUrl);
-//                        } else {
-//                            Log.e("MusicService", "No se pudo obtener la imagen del álbum para el ID: " + albumId);
-//                            playSongWithDetails(title, artist, audioUrl, null);
-//                        }
-//                    });
-//                } else {
-//                    playSongWithDetails(title, artist, audioUrl, null);
-//                }
-//            } else {
-//                Log.e("MusicService", "Error al obtener datos de la canción: " + task.getException());
-//                failedSongs.add(songId); // Agregar a la lista de fallos
-//                playNextSong(); // Intenta reproducir la siguiente canción
-//            }
-//        });
-//    }
-
-//   private void playSongWithDetails(String title, String artist, String audioUrl, String albumImageUrl) {
-//        // Detener la canción actual si está en reproducción
-//        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-//            mediaPlayer.stop();
-//            mediaPlayer.reset();
-//        }
-//
-//        // Actualizar variables del servicio
-//        currentTitle = title;
-//        currentArtist = artist;
-//        currentAudioUrl = audioUrl;
-//        currentAlbumImageUrl = albumImageUrl;
-//
-//        // Guardar los datos en SharedPreferences
-//        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-//        SharedPreferences.Editor editor = sharedPreferences.edit();
-//        editor.putString("title", title);
-//        editor.putString("artist", artist);
-//        editor.putString("albumImageUrl", albumImageUrl);
-//        editor.putString("audioURL", audioUrl);
-//        editor.apply();
-//        Log.d("MusicService", "Datos guardados en SharedPreferences: " + title + ", " + artist + ", " + audioUrl);
-//
-//        // Notificar al reproductor que los datos han cambiado
-//        notifyPlayerUpdate();
-//
-//        // Reproducir la nueva canción
-//        playSong(audioUrl);
-//
-//        Log.d("MusicService", "Reproduciendo: " + title + " - " + artist);
-//    }
-
-private void notifyPlayerUpdate() {
-    Intent intent = new Intent("com.example.voidtune.UPDATE_PLAYER");
-    intent.putExtra("title", currentTitle);
-    intent.putExtra("artist", currentArtist);
-    intent.putExtra("albumImageUrl", currentAlbumImageUrl);
-    LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-    Log.d("MusicService", "LocalBroadcast enviado con datos: " + currentTitle + ", " + currentArtist);
-}
+    private void notifyPlayerUpdate() {
+        Intent intent = new Intent("com.example.voidtune.UPDATE_PLAYER");
+        intent.putExtra("title", currentTitle);
+        intent.putExtra("artist", currentArtist);
+        intent.putExtra("albumImageUrl", currentAlbumImageUrl);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        Log.d("MusicService", "LocalBroadcast enviado con datos: " + currentTitle + ", " + currentArtist);
+    }
 
     public void loadFromSharedPreferences() {
         SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
@@ -542,37 +400,37 @@ private void notifyPlayerUpdate() {
         }
     }
 
-public boolean isPlaying() {
-    return mediaPlayer != null && mediaPlayer.isPlaying();
-}
+    public boolean isPlaying() {
+        return mediaPlayer != null && mediaPlayer.isPlaying();
+    }
 
-private String sourceType; // Declaración de la variable
+    private String sourceType; // Declaración de la variable
 
-public String getSourceType() {
-    return sourceType; // Devuelve el tipo de fuente actual
-}
+    public String getSourceType() {
+        return sourceType; // Devuelve el tipo de fuente actual
+    }
 
-public void restoreState() {
-    if (mediaPlayer != null && currentAudioUrl != null) {
-        mediaPlayer.seekTo(currentPosition);
-        if (!mediaPlayer.isPlaying()) {
-            mediaPlayer.start();
-            Log.d("MusicService", "Reproducción reanudada.");
-        } else {
-            Log.d("MusicService", "El reproductor ya está reproduciendo.");
+    public void restoreState() {
+        if (mediaPlayer != null && currentAudioUrl != null) {
+            mediaPlayer.seekTo(currentPosition);
+            if (!mediaPlayer.isPlaying()) {
+                mediaPlayer.start();
+                Log.d("MusicService", "Reproducción reanudada.");
+            } else {
+                Log.d("MusicService", "El reproductor ya está reproduciendo.");
+            }
         }
     }
-}
 
-public void seekTo(int position) {
-    if (mediaPlayer != null) {
-        mediaPlayer.seekTo(position);
+    public void seekTo(int position) {
+        if (mediaPlayer != null) {
+            mediaPlayer.seekTo(position);
+        }
     }
-}
 
-public String getCurrentAudioUrl() {
-    return currentAudioUrl;
-}
+    public String getCurrentAudioUrl() {
+        return currentAudioUrl;
+    }
 
     private void releaseMediaPlayer() {
         if (mediaPlayer != null) {
@@ -587,19 +445,6 @@ public String getCurrentAudioUrl() {
         super.onDestroy();
         releaseMediaPlayer(); // Libera el reproductor al destruir el servicio
     }
-
-
-//    @Override
-//    public int onStartCommand(Intent intent, int flags, int startId) {
-//        createNotificationChannel(); // Crear el canal de notificación
-//        Notification notification = new NotificationCompat.Builder(this, "MusicServiceChannel")
-//                .setContentTitle("Reproduciendo música") // Título de la notificación
-//                .setContentText("Tu canción está en reproducción") // Texto de la notificación
-//                .setSmallIcon(R.drawable.ic_music_note) // Icono de la notificación
-//                .build();
-//        startForeground(1, notification); // Ejecutar el servicio en primer plano
-//        return START_STICKY; // Asegura que el servicio se reinicie si es detenido
-//    }
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

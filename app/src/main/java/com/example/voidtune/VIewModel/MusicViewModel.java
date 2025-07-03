@@ -1,6 +1,4 @@
 package com.example.voidtune.VIewModel;
-
-
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -9,7 +7,6 @@ import com.example.voidtune.entities.Song;
 
 import java.util.ArrayList;
 import java.util.List;
-
 public class MusicViewModel extends ViewModel {
     private final MutableLiveData<String> currentSongId = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isPlaying = new MutableLiveData<>();
@@ -36,7 +33,6 @@ public class MusicViewModel extends ViewModel {
         filteredSongs.setValue(result);
     }
 
-    // Java
     public void setAllSongs(List<Song> songs) {
         allSongs.clear();
         allSongs.addAll(songs);

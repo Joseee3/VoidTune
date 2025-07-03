@@ -72,8 +72,6 @@ public class DetailPlaylistActivity extends BaseActivity {
 
     private List<String> playlist = new ArrayList<>(); // Lista para almacenar los IDs de las canciones de la playlist
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,24 +79,6 @@ public class DetailPlaylistActivity extends BaseActivity {
         Intent intent = new Intent(this, PlayerService.class);
         startService(intent);
         setContentView(R.layout.detail_album);
-
-
-
-
-//        // Inicializar MusicViewModel
-//        musicViewModel = new ViewModelProvider(this).get(MusicViewModel.class);
-//        // Observar cambios en el ID de la canción actual
-//        musicViewModel.getCurrentSongId().observe(this, songId -> {
-//            if (songId != null) {
-//                updateFloatingPlayer(songId); // Actualiza el reproductor flotante
-//            }
-//        });
-//
-//        // Observar el estado de reproducción
-//        musicViewModel.getIsPlaying().observe(this, isPlaying -> {
-//            // Actualiza la UI según el estado de reproducción
-//        });
-
 
         // Configurar RecyclerView
         RecyclerView songsRecyclerView = findViewById(R.id.songsRecyclerView);
@@ -108,9 +88,7 @@ public class DetailPlaylistActivity extends BaseActivity {
         songAdapter = new SongAdapter(this, songs, true); // true porque es una playlist
         songsRecyclerView.setAdapter(songAdapter);
 
-
         String playlistId = getIntent().getStringExtra("playlistId");
-
 
         songAdapter.setOnDeleteClickListener((song, position) -> {
             removeSongFromPlaylist(playlistId, song, position);
@@ -128,7 +106,6 @@ public class DetailPlaylistActivity extends BaseActivity {
         ImageView moreOptionsButton = findViewById(R.id.moreOptionsButton);
         String type = getIntent().getStringExtra("type");
 
-
         if ("likeSong".equals(type)) {
 
             titleTextView.setText("Tus me gusta");
@@ -136,9 +113,6 @@ public class DetailPlaylistActivity extends BaseActivity {
 
             playlistImageView.setImageResource(R.drawable.likesong);
             loadPlaylistSongs("likeSong");
-
-
-
 
         } else if ("playlist".equals(type)) {
             titleTextView.setText(playlistName != null ? playlistName : "Playlist sin nombre");
@@ -155,9 +129,7 @@ public class DetailPlaylistActivity extends BaseActivity {
             loadPlaylistSongs(playlistId);
         }
 
-
-
-         moreOptionsButton = findViewById(R.id.moreOptionsButton);
+        moreOptionsButton = findViewById(R.id.moreOptionsButton);
         moreOptionsButton.setOnClickListener(v -> {
             PlaylistOptionsBottomSheet bottomSheet = new PlaylistOptionsBottomSheet();
             bottomSheet.setOnOptionSelectedListener(new PlaylistOptionsBottomSheet.OnOptionSelectedListener() {
@@ -172,7 +144,6 @@ public class DetailPlaylistActivity extends BaseActivity {
                         Toast.makeText(DetailPlaylistActivity.this, "No se pudo cargar la información de la playlist.", Toast.LENGTH_SHORT).show();
                     }
                 }
-
                 @Override
                 public void onDeletePlaylist() {
                     // Lógica para eliminar la playlist
@@ -182,9 +153,6 @@ public class DetailPlaylistActivity extends BaseActivity {
             bottomSheet.show(getSupportFragmentManager(), "PlaylistOptionsBottomSheet");
         });
 
-
-
-        //Abrir Library
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
 
         bottomNavigationView.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
@@ -205,44 +173,6 @@ public class DetailPlaylistActivity extends BaseActivity {
                 return false;
             }
         });
-
-
-//        songAdapter.setOnSongClickListener(song -> {
-//            Log.d("SongClick", "Song ID: " + song.getId());
-//
-//            DatabaseReference albumRef = FirebaseDatabase.getInstance()
-//                    .getReference("albums")
-//                    .child(song.getAlbumId());
-//
-//            albumRef.child("imageURL").get().addOnCompleteListener(task -> {
-//                String albumImageUrl = null;
-//                if (task.isSuccessful() && task.getResult() != null) {
-//                    albumImageUrl = task.getResult().getValue(String.class);
-//                }
-//
-//                // Save all song data for the floating player
-//                SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-//                SharedPreferences.Editor editor = sharedPreferences.edit();
-//                ArrayList<String> playlistIds = new ArrayList<>();
-//                for (Song s : songs) playlistIds.add(s.getId());
-//                editor.putStringSet("playlist", new HashSet<>(playlistIds));
-//                editor.putString("currentAudioUrl", song.getAudioURL());
-//                editor.putString("title", song.getName());
-//                editor.putString("artist", song.getArtist());
-//                editor.putString("albumImageUrl", albumImageUrl);
-//                editor.apply();
-//
-//                // Start playback
-//                if (musicService != null && isServiceBound) {
-//                    musicService.replaceAndPlaySong(song.getId(), playlistIds);
-//                } else {
-//                    Toast.makeText(this, "El servicio de música no está disponible.", Toast.LENGTH_SHORT).show();
-//                }
-//
-//                // Update the floating player (it will read from SharedPreferences)
-//                loadFloatingPlayer();
-//            });
-//        });
 
        songAdapter.setOnSongClickListener(song -> {
            String albumId = song.getAlbumID();
@@ -298,8 +228,6 @@ public class DetailPlaylistActivity extends BaseActivity {
            });
        });
     }
-
-
 
     private void setRetainedInstance(boolean b) {
     }
@@ -507,8 +435,6 @@ public class DetailPlaylistActivity extends BaseActivity {
         }
     }
 
-
-
     private void adaptBackgroundToImage(String imageUrl) {
         ImageView playlistImageView = findViewById(R.id.albumCover);
         View backgroundView = findViewById(R.id.backgroundView); // Cambia al ID de tu fondo
@@ -552,32 +478,31 @@ public class DetailPlaylistActivity extends BaseActivity {
         }
     };
 
-@Override
-protected void onStart() {
-    super.onStart();
-    Intent intent = new Intent(this, MusicService.class);
-    bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Intent intent = new Intent(this, MusicService.class);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
 
-    SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-    currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
-    int savedPosition = sharedPreferences.getInt("currentPosition", 0);
-    boolean isPlaying = sharedPreferences.getBoolean("isPlaying", false);
-    // Recupera la playlist
-    List<String> playlist = new ArrayList<>(sharedPreferences.getStringSet("playlist", new HashSet<>()));
+        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+        currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+        int savedPosition = sharedPreferences.getInt("currentPosition", 0);
+        boolean isPlaying = sharedPreferences.getBoolean("isPlaying", false);
+        // Recupera la playlist
+        List<String> playlist = new ArrayList<>(sharedPreferences.getStringSet("playlist", new HashSet<>()));
 
-    if (isServiceBound && musicService != null && currentAudioUrl != null) {
-        musicService.restoreState();
-        musicService.setPlaylist(playlist); // Asegúrate de que tu servicio tenga este método
-        musicService.seekTo(savedPosition);
-        if (isPlaying) {
-            musicService.playSong(currentAudioUrl);
-        } else {
-            musicService.pauseSong();
+        if (isServiceBound && musicService != null && currentAudioUrl != null) {
+            musicService.restoreState();
+            musicService.setPlaylist(playlist); // Asegúrate de que tu servicio tenga este método
+            musicService.seekTo(savedPosition);
+            if (isPlaying) {
+                musicService.playSong(currentAudioUrl);
+            } else {
+                musicService.pauseSong();
+            }
         }
+        loadFloatingPlayer();
     }
-
-    loadFloatingPlayer();
-}
 
     @Override
     protected void onStop() {
@@ -597,7 +522,6 @@ protected void onStart() {
         }
     }
 
-
     protected void loadFloatingPlayer() {
        FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
                getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
@@ -616,41 +540,6 @@ protected void onStart() {
            findViewById(R.id.floatingPlayerContainer).setVisibility(View.GONE);
        }
    }
-
-//  private void updateFloatingPlayer(String songId) {
-//      currentAudioUrl = songId;
-//
-//      FirebaseDatabase.getInstance().getReference("songs").child(songId)
-//          .get()
-//          .addOnCompleteListener(task -> {
-//              if (task.isSuccessful() && task.getResult() != null) {
-//                  String audioUrl = task.getResult().child("audioURL").getValue(String.class);
-//                  String title = task.getResult().child("title").getValue(String.class);
-//                  String artist = task.getResult().child("artist").getValue(String.class);
-//                  String albumImageUrl = task.getResult().child("albumImage").getValue(String.class);
-//
-//                  if (audioUrl != null && title != null && artist != null && albumImageUrl != null) {
-//                      // Guardar los datos en SharedPreferences
-//                      saveSongToSharedPreferences(audioUrl, title, artist, albumImageUrl);
-//
-//                      // Actualizar el reproductor flotante directamente
-//                      FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
-//                          getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
-//
-//                      if (floatingPlayerFragment != null && floatingPlayerFragment.isAdded()) {
-//                          floatingPlayerFragment.updatePlayer(audioUrl);
-//                          findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
-//                      } else {
-//                          Log.e("updateFloatingPlayer", "FloatingPlayerFragment no está disponible.");
-//                      }
-//                  } else {
-//                      Log.e("updateFloatingPlayer", "Datos incompletos para la canción.");
-//                  }
-//              } else {
-//                  Log.e("updateFloatingPlayer", "Error al cargar los datos de la canción: " + task.getException());
-//              }
-//          });
-//  }
 
     public void updateFloatingPlayer(String songId) {
         if (songId == null || songId.isEmpty()) {
@@ -681,7 +570,6 @@ protected void onStart() {
                                     albumName = albumSnapshot.child("name").getValue(String.class);
                                     albumArtist = albumSnapshot.child("artist").getValue(String.class);
                                 }
-
                                 // Recupera la playlist actual de SharedPreferences
                                 SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
                                 HashSet<String> playlistSet = new HashSet<>(sharedPreferences.getStringSet("playlist", new HashSet<>()));
@@ -720,23 +608,6 @@ protected void onStart() {
             });
     }
 
-   private void saveSongToSharedPreferences(String audioUrl, String title, String artist, String albumImageUrl) {
-       SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-       SharedPreferences.Editor editor = sharedPreferences.edit();
-       editor.putString("currentAudioUrl", audioUrl);
-       editor.putString("title", title);
-       editor.putString("artist", artist);
-       editor.putString("albumImageUrl", albumImageUrl);
-       editor.apply();
-   }
-
-   private void iniciarReproduccion(List<String> canciones, String sourceType) {
-       Intent musicServiceIntent = new Intent(this, MusicService.class);
-       musicServiceIntent.putStringArrayListExtra("playlist", new ArrayList<>(canciones));
-       musicServiceIntent.putExtra("sourceType", sourceType); // "album" o "playlist"
-       startService(musicServiceIntent);
-   }
-
     @Override
     protected void onResume () {
         super.onResume();
@@ -747,9 +618,4 @@ protected void onStart() {
             floatingPlayerFragment.updatePlayer(currentAudioUrl); // Pass the songId or audioUrl
         }
     }
-
-
-
-
-
 }

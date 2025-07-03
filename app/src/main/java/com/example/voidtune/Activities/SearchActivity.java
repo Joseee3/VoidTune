@@ -85,7 +85,6 @@ public class SearchActivity extends AppCompatActivity {
             }
         });
 
-        // Fetch songs from Firebase and set them in the ViewModel
         fetchAllSongsFromFirebase(new OnSongsFetchedListener() {
             @Override
             public void onSongsFetched(List<Song> songs) {
@@ -121,59 +120,58 @@ public class SearchActivity extends AppCompatActivity {
             }
         });
 
+        songAdapter.setOnSongClickListener(selectedSong -> {
+            String albumId = selectedSong.getAlbumID() != null ? selectedSong.getAlbumID() : "";
 
-            songAdapter.setOnSongClickListener(selectedSong -> {
-                String albumId = selectedSong.getAlbumID() != null ? selectedSong.getAlbumID() : "";
+            FirebaseDatabase.getInstance()
+                .getReference("albums")
+                .child(albumId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    String albumImageUrl = "";
+                    String albumName = "";
+                    String albumArtist = "";
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        DataSnapshot albumSnapshot = task.getResult();
+                        albumImageUrl = albumSnapshot.child("imageURL").getValue(String.class);
+                        albumName = albumSnapshot.child("name").getValue(String.class);
+                        albumArtist = albumSnapshot.child("artist").getValue(String.class);
+                    }
 
-                FirebaseDatabase.getInstance()
-                    .getReference("albums")
-                    .child(albumId)
-                    .get()
-                    .addOnCompleteListener(task -> {
-                        String albumImageUrl = "";
-                        String albumName = "";
-                        String albumArtist = "";
-                        if (task.isSuccessful() && task.getResult() != null) {
-                            DataSnapshot albumSnapshot = task.getResult();
-                            albumImageUrl = albumSnapshot.child("imageURL").getValue(String.class);
-                            albumName = albumSnapshot.child("name").getValue(String.class);
-                            albumArtist = albumSnapshot.child("artist").getValue(String.class);
-                        }
+                    // Save all song and album data for the floating player
+                    SharedPreferences prefs = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putString("currentAudioUrl", selectedSong.getAudioURL());
+                    editor.putString("title", selectedSong.getName());
+                    editor.putString("artist", selectedSong.getArtist());
+                    editor.putString("albumImageUrl", albumImageUrl != null ? albumImageUrl : "");
+                    editor.putString("albumName", albumName != null ? albumName : "");
+                    editor.putString("albumArtist", albumArtist != null ? albumArtist : "");
+                    editor.apply();
 
-                        // Save all song and album data for the floating player
-                        SharedPreferences prefs = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-                        SharedPreferences.Editor editor = prefs.edit();
-                        editor.putString("currentAudioUrl", selectedSong.getAudioURL());
-                        editor.putString("title", selectedSong.getName());
-                        editor.putString("artist", selectedSong.getArtist());
-                        editor.putString("albumImageUrl", albumImageUrl != null ? albumImageUrl : "");
-                        editor.putString("albumName", albumName != null ? albumName : "");
-                        editor.putString("albumArtist", albumArtist != null ? albumArtist : "");
-                        editor.apply();
+                    // Always replace and commit the fragment immediately
+                    // Actualiza el fragmento del reproductor flotante
+                    FloatingPlayerFragment floatingPlayerFragment = new FloatingPlayerFragment();
+                    getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.floatingPlayerContainer, floatingPlayerFragment)
+                            .commitNow();
 
-                        // Always replace and commit the fragment immediately
-                        // Actualiza el fragmento del reproductor flotante
-                        FloatingPlayerFragment floatingPlayerFragment = new FloatingPlayerFragment();
-                        getSupportFragmentManager().beginTransaction()
-                                .replace(R.id.floatingPlayerContainer, floatingPlayerFragment)
-                                .commitNow();
+                    floatingPlayerFragment.updatePlayer(selectedSong.getAudioURL());
+                    floatingPlayerFragment.updateAlbumImage(albumImageUrl);
+                    findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
 
-                        floatingPlayerFragment.updatePlayer(selectedSong.getAudioURL());
-                        floatingPlayerFragment.updateAlbumImage(albumImageUrl);
-                        findViewById(R.id.floatingPlayerContainer).setVisibility(View.VISIBLE);
-
-                        // Start playback logic
-                        if (musicService != null && isServiceBound) {
-                            musicService.playSong(selectedSong.getAudioURL());
-                        } else {
-                            Intent intent = new Intent(SearchActivity.this, MusicService.class);
-                            intent.putExtra("audioUrl", selectedSong.getAudioURL());
-                            intent.putExtra("sourceType", "search");
-                            startService(intent);
-                        }
-                        updateFloatingPlayer(selectedSong.getId());
-                    });
-            });
+                    // Start playback logic
+                    if (musicService != null && isServiceBound) {
+                        musicService.playSong(selectedSong.getAudioURL());
+                    } else {
+                        Intent intent = new Intent(SearchActivity.this, MusicService.class);
+                        intent.putExtra("audioUrl", selectedSong.getAudioURL());
+                        intent.putExtra("sourceType", "search");
+                        startService(intent);
+                    }
+                    updateFloatingPlayer(selectedSong.getId());
+                });
+        });
     }
 
     private void fetchAllSongsFromFirebase(OnSongsFetchedListener listener) {
@@ -241,17 +239,15 @@ public class SearchActivity extends AppCompatActivity {
 
         loadFloatingPlayer();
     }
-@Override
-protected void onStop() {
-    super.onStop();
-    if (isServiceBound) {
-        unbindService(serviceConnection);
-        isServiceBound = false;
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (isServiceBound) {
+            unbindService(serviceConnection);
+            isServiceBound = false;
+        }
     }
-}
 
-
-    // Listener interface for async callback
     public interface OnSongsFetchedListener {
         void onSongsFetched(List<Song> songs);
     }

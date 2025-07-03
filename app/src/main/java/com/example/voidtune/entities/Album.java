@@ -8,10 +8,8 @@ public class Album {
     private String artist;
     private String imageUrl;
     private List<String> songs; // Lista de IDs de canciones
-
     public Album() {
     }
-
     public Album(String id, String name, String artist, String imageUrl, List<String> songs) {
         this.id = id;
         this.name = name;

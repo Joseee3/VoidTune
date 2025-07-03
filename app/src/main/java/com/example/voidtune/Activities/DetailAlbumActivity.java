@@ -46,7 +46,6 @@ public class DetailAlbumActivity extends BaseActivity {
         this.currentSongIndex = index;
     }
 
-
     private boolean isServiceBound = false;
     private MusicService musicService;
     private RecyclerView recyclerView;
@@ -55,7 +54,6 @@ public class DetailAlbumActivity extends BaseActivity {
 
     private int currentSongIndex = 0;
     private ArrayList<String> playlist;
-
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -71,61 +69,57 @@ public class DetailAlbumActivity extends BaseActivity {
         }
     };
 
-@Override
-protected void onStart() {
-    super.onStart();
-    // Vincula el servicio de música
-    Intent intent = new Intent(this, MusicService.class);
-    bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Vinculamos el servicio de música
+        Intent intent = new Intent(this, MusicService.class);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
 
 
-    // Verifica si el servicio ya está reproduciendo
-    if (isServiceBound && musicService != null && musicService.isPlaying()) {
-        Log.d("DetailAlbumActivity", "El servicio ya está reproduciendo. No se restaurará el estado.");
+        // Verificamos si el servicio ya está reproduciendo
+        if (isServiceBound && musicService != null && musicService.isPlaying()) {
+            Log.d("DetailAlbumActivity", "El servicio ya está reproduciendo. No se restaurará el estado.");
+            loadFloatingPlayer();
+            return;
+        }
+
+        // Restauramos el estado del reproductor desde SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+        currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
+        int savedPosition = sharedPreferences.getInt("currentPosition", 0);
+        boolean isPlaying = sharedPreferences.getBoolean("isPlaying", false);
+
+        if (isServiceBound && musicService != null && currentAudioUrl != null) {
+            musicService.restoreState(); // Sin argumentos
+            if (isPlaying) {
+                musicService.seekTo(savedPosition);
+                musicService.playSong(currentAudioUrl);
+            } else {
+                musicService.seekTo(savedPosition);
+                musicService.pauseSong();
+            }
+        }
         loadFloatingPlayer();
-        return;
     }
 
-    // Restaura el estado del reproductor desde SharedPreferences
-    SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-    currentAudioUrl = sharedPreferences.getString("currentAudioUrl", null);
-    int savedPosition = sharedPreferences.getInt("currentPosition", 0);
-    boolean isPlaying = sharedPreferences.getBoolean("isPlaying", false);
+    @Override
+    protected void onStop() {
+        super.onStop();
 
-    if (isServiceBound && musicService != null && currentAudioUrl != null) {
-        musicService.restoreState(); // Sin argumentos
-        if (isPlaying) {
-            musicService.seekTo(savedPosition);
-            musicService.playSong(currentAudioUrl);
-        } else {
-            musicService.seekTo(savedPosition);
-            musicService.pauseSong();
+        if (isServiceBound && musicService != null) {
+            // Guarda el estado del reproductor en SharedPreferences
+            SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("currentAudioUrl", musicService.getCurrentAudioUrl());
+            editor.putInt("currentPosition", musicService.getCurrentPosition());
+            editor.putBoolean("isPlaying", musicService.isPlaying());
+            editor.apply();
+
+            unbindService(serviceConnection);
+            isServiceBound = false;
         }
     }
-
-    // Asegúrate de que el reproductor flotante esté visible
-    loadFloatingPlayer();
-}
-
-@Override
-protected void onStop() {
-    super.onStop();
-
-    if (isServiceBound && musicService != null) {
-        // Guarda el estado del reproductor en SharedPreferences
-        SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("currentAudioUrl", musicService.getCurrentAudioUrl());
-        editor.putInt("currentPosition", musicService.getCurrentPosition());
-        editor.putBoolean("isPlaying", musicService.isPlaying());
-        editor.apply();
-
-        unbindService(serviceConnection);
-        isServiceBound = false;
-    }
-}
-
-
     protected void loadFloatingPlayer() {
         FloatingPlayerFragment floatingPlayerFragment = (FloatingPlayerFragment)
                 getSupportFragmentManager().findFragmentById(R.id.floatingPlayerContainer);
@@ -169,9 +163,7 @@ protected void onStop() {
                 Toast.makeText(this, "No se pudo cargar la información del álbum.", Toast.LENGTH_SHORT).show();
                 return;
             }
-
             // Actualiza el albumId en SharedPreferences
-           // Actualiza el albumId en SharedPreferences
            SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
            SharedPreferences.Editor editor = sharedPreferences.edit();
            editor.putStringSet("playlist", new HashSet<>(playlist)); // Guarda la nueva lista

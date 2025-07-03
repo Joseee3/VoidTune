@@ -14,14 +14,12 @@ import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.auth.FirebaseAuth;
 
 public class WelcomeActivity extends AppCompatActivity {
-
     private FirebaseAnalytics mFirebaseAnalytics;
     private static final String TAG = "FirebaseDebug";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_welcome);
-
 
     // Verificar si el usuario ya está autenticado
     FirebaseAuth auth = FirebaseAuth.getInstance();
@@ -36,7 +34,6 @@ public class WelcomeActivity extends AppCompatActivity {
 
     // Si no está autenticado, mostrar el WelcomeActivity
     setContentView(R.layout.activity_welcome);
-
 
         // Inicializar Firebase Analytics
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);

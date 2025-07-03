@@ -85,9 +85,7 @@ public class MainActivity extends BaseActivity {
 
     private String currentAudioUrl;
 
-
     private static final int REQUEST_CODE_DETAIL_PLAYLIST = 1;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,12 +112,10 @@ public class MainActivity extends BaseActivity {
             Log.e("DetailAlbumActivity", "No se recibieron canciones en el Intent.");
         }
 
-
         // Cargar el FloatingPlayerFragment
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.floatingPlayerContainer, new FloatingPlayerFragment())
                 .commit();
-
 
         TextView greetingText = findViewById(R.id.greetingText);
 
@@ -201,16 +197,11 @@ public class MainActivity extends BaseActivity {
 
         // Configuración de los otros RecyclerView con item_home.xml
         inicializarRecyclerViews();
-
         // Cargar datos de Firebase
         cargarListasDinamicas();
-
         cargarLibraryItemsDesdeFirebase();
 
-
     }
-
-
     private void inicializarRecyclerViews() {
         suggestionsAdapter = configurarRecyclerViewDinamico(R.id.suggestionsRecyclerView);
         mostPlayedAdapter = configurarRecyclerViewDinamico(R.id.mostPlayedRecyclerView);
@@ -218,7 +209,6 @@ public class MainActivity extends BaseActivity {
         moreOfWhatYouLikeAdapter = configurarRecyclerViewDinamico(R.id.moreOfWhatYouLikeRecyclerView);
         madeForYouAdapter = configurarRecyclerViewDinamico(R.id.madeForYouRecyclerView);
     }
-
     private HomeListAdapter configurarRecyclerViewDinamico(int recyclerViewId) {
         RecyclerView recyclerView = findViewById(recyclerViewId);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
@@ -228,14 +218,6 @@ public class MainActivity extends BaseActivity {
         return adapter;
     }
 
-    private void configurarRecyclerViewDinamico(int recyclerViewId, HomeListAdapter adapter) {
-        RecyclerView recyclerView = findViewById(recyclerViewId);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        adapter = new HomeListAdapter(this, new ArrayList<>());
-        adapter.setOnItemClickListener(album -> cargarAlbumYAbrirDetalle(album.getId()));
-        recyclerView.setAdapter(adapter);
-    }
-
     private void cargarListasDinamicas() {
         cargarListaDinamica("suggestion", suggestionsAdapter);
         cargarListaDinamica("mostplayed", mostPlayedAdapter);
@@ -243,7 +225,6 @@ public class MainActivity extends BaseActivity {
         cargarListaDinamica("moreofwhatyoulike", moreOfWhatYouLikeAdapter);
         cargarListaDinamica("madeforyou", madeForYouAdapter);
     }
-
     private void cargarListaDinamica(String listaNombre, HomeListAdapter adapter) {
         databaseReference.child(listaNombre).get().addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
@@ -324,14 +305,6 @@ public class MainActivity extends BaseActivity {
             }
         });
     }
- private void abrirDetalle(Album album) {
-        Intent intent = new Intent(MainActivity.this, DetailAlbumActivity.class);
-        intent.putExtra("albumId", album.getId());
-        intent.putExtra("albumName", album.getName());
-        intent.putExtra("albumImage", album.getImageUrl()); // Pasar la URL de la imagen
-        intent.putStringArrayListExtra("songs", new ArrayList<>(album.getSongs()));
-        startActivity(intent);
-    }
 
     private void cargarLibraryItemsDesdeFirebase() {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
@@ -344,7 +317,6 @@ public class MainActivity extends BaseActivity {
         Log.d("Firebase", "ID del usuario autenticado: " + userId);
 
         DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
-
 
         // Inicializar el adaptador si no está inicializado
         if (playlistAdapter == null) {
@@ -419,8 +391,6 @@ public class MainActivity extends BaseActivity {
             }
         });
  }
-
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -463,30 +433,6 @@ public class MainActivity extends BaseActivity {
             isServiceBound = false;
         }
     }
-
-
-//    private void fetchAndPlaySong(String songId) {
-//        DatabaseReference songRef = FirebaseDatabase.getInstance().getReference("songs").child(songId);
-//
-//        songRef.addValueEventListener(new ValueEventListener() {
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot snapshot) {
-//                if (snapshot.exists()) {
-//                    Song song = snapshot.getValue(Song.class);
-//                    if (song != null) {
-//                        updateFloatingPlayer(song.getName(), song.getArtist(), R.drawable.img_album, song.audioURL);
-//                    }
-//                } else {
-//                    Toast.makeText(MainActivity.this, "The song does not exist.", Toast.LENGTH_SHORT).show();
-//                }
-//            }
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//                Toast.makeText(MainActivity.this, "Error loading data: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-//            }
-//        });
-//    }
 
     private void saveSongToSharedPreferences(String audioUrl, String title, String artist, String albumImageUrl) {
         SharedPreferences sharedPreferences = getSharedPreferences("FloatingPlayerCache", MODE_PRIVATE);
@@ -539,5 +485,4 @@ public class MainActivity extends BaseActivity {
         musicServiceIntent.putExtra("sourceType", sourceType); // "album" o "playlist"
         startService(musicServiceIntent);
     }
-
 }
